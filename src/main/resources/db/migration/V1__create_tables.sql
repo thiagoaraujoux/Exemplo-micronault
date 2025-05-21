@@ -1,21 +1,28 @@
-CREATE TABLE livros (
-id BIGINT AUTO_INCREMENT PRIMARY KEY,
-titulo VARCHAR(255) NOT NULL,
-autor VARCHAR(100) NOT NULL,
-isbn VARCHAR(13) NOT NULL UNIQUE -- Garante que o ISBN seja único
-);
 CREATE TABLE usuarios (
-id BIGINT AUTO_INCREMENT PRIMARY KEY,
-nome VARCHAR(150) NOT NULL
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    senha VARCHAR(100) NOT NULL
 );
-CREATE TABLE emprestimos (
-id BIGINT AUTO_INCREMENT PRIMARY KEY,
-livro_id BIGINT NOT NULL,
-usuario_id BIGINT NOT NULL,
-data_emprestimo DATE NOT NULL,
 
-data_devolucao DATE, -- Pode ser nulo se o ainda não foi devolvido
-ativo BOOLEAN NOT NULL DEFAULT TRUE, -- TRUE para empréstimo ativo
-FOREIGN KEY (livro_id) REFERENCES livros(id),
-FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+CREATE TABLE categorias (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE lista (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(150) NOT NULL,
+    descricao TEXT,
+    data_criacao DATE NOT NULL,
+    usuario_id BIGINT NOT NULL,
+    categoria_id BIGINT,
+
+    CONSTRAINT fk_usuario
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_categoria
+        FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+        ON DELETE RESTRICT
 );
