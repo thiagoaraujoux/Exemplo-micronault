@@ -39,7 +39,10 @@
       <version>${micronaut.core.version}</version>
       <scope>compile</scope>
     </dependency>
-    <!-- Removed the dependency as it is missing -->
+    <dependency>
+    <groupId>org.mindrot</groupId>
+    <artifactId>jbcrypt</artifactId>
+    <version>0.4</version> </dependency>
     <dependency>
       <groupId>io.swagger.core.v3</groupId>
       <artifactId>swagger-annotations</artifactId>

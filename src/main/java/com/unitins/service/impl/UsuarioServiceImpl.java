@@ -10,6 +10,8 @@ import io.micronaut.transaction.annotation.Transactional; // Anotação de trans
 
 import java.util.Optional;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 @Singleton // Micronaut gerencia esta classe como um singleton
 public class UsuarioServiceImpl implements UsuarioService { // Implementa a interface do serviço
 
@@ -45,11 +47,14 @@ public class UsuarioServiceImpl implements UsuarioService { // Implementa a inte
     @Override
     @Transactional // Marca o método como transacional (escrita)
     public Usuario salvarUsuario(Usuario usuario) {
-        // Implementação para salvar/criar um usuário
-        // Ex: Criptografar a senha antes de salvar
-        // usuario = new Usuario(null, usuario.nome(), usuario.email(), criptografarSenha(usuario.senha()));
-        return usuarioRepository.save(usuario);
+        // Este método é chamado pelo controller para criar um novo usuário.
+        // A senha em texto plano recebida do frontend deve ser hashed antes de salvar.
+        String senhaHashed = BCrypt.hashpw(usuario.senha(), BCrypt.gensalt());
+        // Cria uma nova instância de Usuario com a senha hashed
+        Usuario usuarioParaSalvar = new Usuario(null, usuario.nome(), usuario.email(), senhaHashed);
+        return usuarioRepository.save(usuarioParaSalvar);
     }
+
 
     @Override
     @Transactional // Marca o método como transacional (escrita)
