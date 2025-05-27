@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login App - Início</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #4CAF50, #81C784);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .auth-container {
+            background-color: #ffffff;
+            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            z-index: 1;
+            position: relative;
+        }
+
+        .auth-container h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 24px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .auth-container h2::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background-color: #4CAF50;
+            border-radius: 2px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: 600;
+            margin-top: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 24px;
+            }
+            .auth-container h2 {
+                font-size: 24px;
+            }
+            button {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Bem-vindo</h2>
+        <button id="btnApi">Acessar API (Swagger)</button>
+        <button id="btnLogin">Ir para Login</button>
+    </div>
+
+    <script>
+        document.getElementById('btnApi').addEventListener('click', () => {
+            window.location.href = '/swagger-ui/';
+        });
+
+        document.getElementById('btnLogin').addEventListener('click', () => {
+            window.location.href = '/login';
+        });
+    </script>
+</body>
+</html>

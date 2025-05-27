@@ -214,9 +214,9 @@
         <p id="errorMessageText"></p>
     </div>
 
-    <div id="successPopup" class="popup success-popup">
+    <!-- <div id="successPopup" class="popup success-popup">
         <p id="successMessageText"></p>
-    </div>
+    </div> -->
 
     <script>
         // Função para obter parâmetros da URL
@@ -246,21 +246,15 @@
         // Lógica específica para login.html ao carregar a página
         window.onload = function() {
             const errorType = getUrlParameter('erro');
-            const success = getUrlParameter('sucesso');
-            let errorMessage = '';
-            let successMessage = '';
+            // O parâmetro 'sucesso' não será mais usado diretamente aqui para redirecionamento
+            // const success = getUrlParameter('sucesso');
 
             if (errorType === 'invalido') {
                 errorMessage = 'Email ou senha inválidos.';
                 showPopup('errorPopup', errorMessage);
-            } else if (success === 'true') {
-                successMessage = 'Login efetuado com sucesso! Redirecionando...';
-                showPopup('successPopup', successMessage);
-                // Redireciona para a página principal (/lista) após 1 segundo
-                setTimeout(function() {
-                    window.location.href = '/lista';
-                }, 1000);
             }
+            // A lógica de redirecionamento para sucesso foi movida para o backend (LoginController)
+            // Portanto, não há mais necessidade de um setTimeout ou de um popup de sucesso aqui.
         };
     </script>
 </body>

@@ -13,7 +13,7 @@ import jakarta.validation.Valid;
 
 @Validated // Habilita a validação das requisições
 @Controller("/api/usuarios") // Define o caminho base para este controlador
-@Tag(name = "usuarios") // Tag para documentação Swagger/OpenAPI
+@Tag(name = "Usuarios", description = "Operações relacionadas a usuarios") // Updated Tag description) // Tag para documentação Swagger/OpenAPI
 public class UsuarioController {
 
     private final UsuarioService usuarioService; // Injeta o serviço de usuário

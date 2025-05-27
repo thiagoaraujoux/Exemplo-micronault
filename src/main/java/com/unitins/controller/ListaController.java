@@ -13,7 +13,7 @@ import jakarta.validation.Valid;
 
 @Validated
 @Controller("/api/listas")
-@Tag(name = "listas")
+@Tag(name = "Listas", description = "Operações relacionadas a listas") // Updated Tag description)
 public class ListaController {
 
     private final ListaService listaService;

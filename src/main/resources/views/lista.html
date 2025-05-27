@@ -79,10 +79,14 @@
             color: #555;
             margin-bottom: 8px;
             font-weight: 600;
+            display: flex; /* Para alinhar label e ícone */
+            align-items: center;
+            gap: 8px; /* Espaço entre label e ícone */
         }
 
         .input-group input[type="text"],
-        .input-group textarea {
+        .input-group textarea,
+        .input-group select { /* Adicionado select aqui */
             width: 100%;
             padding: 12px 16px;
             font-size: 16px;
@@ -95,7 +99,8 @@
         }
 
         .input-group input[type="text"]:focus,
-        .input-group textarea:focus {
+        .input-group textarea:focus,
+        .input-group select:focus {
             border-color: #4CAF50;
             box-shadow: 0 0 8px rgba(76, 175, 80, 0.2);
         }
@@ -266,8 +271,13 @@
 
         /* Responsividade para telas menores */
         @media (max-width: 768px) {
+            body {
+                align-items: center; /* Centraliza verticalmente em telas menores */
+                padding: 15px; /* Ajusta padding */
+            }
             .main-container {
                 padding: 24px;
+                margin-top: 0; /* Remove margem superior */
             }
             .main-container h2 {
                 font-size: 26px;
@@ -322,6 +332,70 @@
                 margin-bottom: 5px;
             }
         }
+
+        /* Estilos para o modal de adicionar categoria */
+        .modal-category {
+            display: none; /* Oculto por padrão */
+            position: fixed; /* Fica no lugar */
+            z-index: 1002; /* Acima de outros modais/popups */
+            left: 0;
+            top: 0;
+            width: 100%; /* Largura total */
+            height: 100%; /* Altura total */
+            overflow: auto; /* Habilita scroll se necessário */
+            background-color: rgba(0,0,0,0.5); /* Fundo escuro com opacidade */
+            display: flex; /* Para centralizar conteúdo */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-category-content {
+            background-color: #fefefe;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            text-align: center;
+        }
+
+        .modal-category-content h3 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .modal-category-content .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-category-content .close-button:hover,
+        .modal-category-content .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .add-icon {
+            font-size: 1.2em; /* Tamanho do ícone */
+            font-weight: bold;
+            cursor: pointer;
+            color: #4CAF50; /* Cor do ícone */
+            margin-left: 5px;
+            transition: transform 0.2s ease;
+        }
+
+        .add-icon:hover {
+            transform: scale(1.2); /* Efeito de zoom no hover */
+        }
     </style>
 </head>
 <body>
@@ -331,9 +405,18 @@
             <a href="/login/logout" class="button logout-button">Sair</a>
         </div>
 
+        <div id="errorPopup" class="popup error-popup">
+            <span class="close-btn" onclick="closePopup('errorPopup')">&times;</span>
+            <p id="errorMessageText"></p>
+        </div>
+
+        <div id="successPopup" class="popup success-popup">
+            <p id="successMessageText"></p>
+        </div>
+
         <div class="form-section">
             <h3 id="formTitle">Adicionar Nova Lista</h3>
-            <form id="listaForm" method="POST" action="/listas">
+            <form id="listaForm">
                 <input type="hidden" id="listaId" name="id" value="">
 
                 <div class="input-group">
@@ -343,6 +426,14 @@
                 <div class="input-group">
                     <label for="descricao">Descrição:</label>
                     <textarea id="descricao" name="descricao" rows="3" placeholder="Ex: Leite, Pão, Ovos... (Opcional)"></textarea>
+                </div>
+                <div class="input-group">
+                    <label for="categoriaId">Categoria:
+                        <span class="add-icon" onclick="openAddCategoryModal()">+</span>
+                    </label>
+                    <select id="categoriaId" name="categoriaId" required>
+                        <option value="">Selecione uma categoria</option>
+                        </select>
                 </div>
                 <div class="form-buttons">
                     <button type="submit" id="submitButton">Salvar Lista</button>
@@ -363,7 +454,9 @@
                         <th>Título</th>
                         <th>Descrição</th>
                         <th>Data Criação</th>
-                        <th>Usuário</th> <th>Categoria</th> <th>Ações</th>
+                        <th>Usuário</th>
+                        <th>Categoria</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -372,9 +465,11 @@
                         <td data-label="Título" th:text="${lista.titulo()}">Minha Lista de Compras</td>
                         <td data-label="Descrição" th:text="${lista.descricao()}">Leite, Pão, Ovos, Arroz</td>
                         <td data-label="Data Criação" th:text="${#temporals.format(lista.dataCriacao(), 'dd/MM/yyyy')}">20/05/2024</td>
-                        <td data-label="Usuário" th:text="${lista.usuario() != null ? lista.usuario().nome() : 'N/A'}">João</td> <td data-label="Categoria" th:text="${lista.categoria() != null ? lista.categoria().nome() : 'N/A'}">Mercado</td> <td data-label="Ações" class="action-buttons">
+                        <td data-label="Usuário" th:text="${lista.usuario() != null ? lista.usuario().nome() : 'N/A'}">João</td>
+                        <td data-label="Categoria" th:text="${lista.categoria() != null ? lista.categoria().nome() : 'N/A'}">Mercado</td>
+                        <td data-label="Ações" class="action-buttons">
                             <button class="edit-button"
-                                    th:attr="onclick=|editList(${lista.id()}, '${lista.titulo()}', '${lista.descricao()}', '${#temporals.format(lista.dataCriacao(), 'yyyy-MM-dd')}', ${lista.usuario()?.id() ?: 'null'})|">
+                                    th:attr="onclick=|editList(${lista.id()}, '${lista.titulo()}', '${lista.descricao()}', ${lista.categoria()?.id() ?: 'null'})|">
                                 Editar
                             </button>
                             <button class="delete-button"
@@ -388,24 +483,37 @@
         </div>
     </div>
 
-    <div id="errorPopup" class="popup error-popup">
-        <span class="close-btn" onclick="closePopup('errorPopup')">&times;</span>
-        <p id="errorMessageText"></p>
-    </div>
-
-    <div id="successPopup" class="popup success-popup">
-        <p id="successMessageText"></p>
+    <div id="addCategoryModal" class="modal-category">
+        <div class="modal-category-content">
+            <span class="close-button" onclick="closeAddCategoryModal()">&times;</span>
+            <h3>Adicionar Nova Categoria</h3>
+            <form id="addCategoryForm">
+                <div class="input-group">
+                    <label for="newCategoryName">Nome da Categoria:</label>
+                    <input type="text" id="newCategoryName" name="nome" placeholder="Ex: Trabalho, Pessoal" required>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit">Salvar Categoria</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
-        // Referências aos elementos do formulário
+        // Referências aos elementos do formulário principal
         const listaForm = document.getElementById('listaForm');
         const formTitle = document.getElementById('formTitle');
         const listaIdInput = document.getElementById('listaId');
         const tituloInput = document.getElementById('titulo');
         const descricaoInput = document.getElementById('descricao');
+        const categoriaIdSelect = document.getElementById('categoriaId'); // Referência ao select de categoria
         const submitButton = document.getElementById('submitButton');
         const cancelEditButton = document.getElementById('cancelEditButton');
+
+        // Referências aos elementos do modal de categoria
+        const addCategoryModal = document.getElementById('addCategoryModal');
+        const addCategoryForm = document.getElementById('addCategoryForm');
+        const newCategoryNameInput = document.getElementById('newCategoryName');
 
         // Função para obter parâmetros da URL (reutilizada)
         function getUrlParameter(name) {
@@ -440,14 +548,14 @@
          * @param {number} id - ID da lista.
          * @param {string} titulo - Título da lista.
          * @param {string} descricao - Descrição da lista.
-         * @param {string} dataCriacao - Data de criação da lista (string no formato YYYY-MM-DD).
-         * @param {number|null} usuarioId - ID do usuário. Pode ser null.
+         * @param {number|null} categoriaId - ID da categoria. Pode ser null.
          */
-        function editList(id, titulo, descricao, dataCriacao, usuarioId) {
+        function editList(id, titulo, descricao, categoriaId) {
             formTitle.textContent = 'Editar Lista';
             listaIdInput.value = id;
             tituloInput.value = titulo;
             descricaoInput.value = descricao;
+            categoriaIdSelect.value = categoriaId || ''; // Define a categoria, ou vazio se null
             submitButton.textContent = 'Atualizar Lista';
             cancelEditButton.style.display = 'inline-block'; // Mostra o botão de cancelar
 
@@ -463,6 +571,7 @@
             listaIdInput.value = '';
             tituloInput.value = '';
             descricaoInput.value = '';
+            categoriaIdSelect.value = ''; // Reseta a seleção da categoria
             submitButton.textContent = 'Salvar Lista';
             cancelEditButton.style.display = 'none'; // Esconde o botão de cancelar
             listaForm.reset(); // Limpa quaisquer campos do formulário
@@ -478,21 +587,23 @@
         async function deleteList(id) {
             if (confirm('Tem certeza que deseja excluir esta lista?')) {
                 try {
-                    const response = await fetch(`/api/listas/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json'
-                            // Adicione headers de autenticação se sua API exigir (ex: Authorization: Bearer token)
-                        }
+                    const response = await fetch(`/listas/${id}`, {
+                        method: 'DELETE'
                     });
 
                     if (response.ok) {
                         showPopup('successPopup', 'Lista excluída com sucesso!');
-                        // Recarrega a página para atualizar a lista
                         setTimeout(() => { window.location.reload(); }, 1000);
+                    } else if (response.status === 401) {
+                        showPopup('errorPopup', 'Não autorizado. Faça login novamente.');
+                        setTimeout(() => { window.location.href = '/login'; }, 2000);
+                    } else if (response.status === 403) {
+                        showPopup('errorPopup', 'Você não tem permissão para excluir esta lista.');
+                    } else if (response.status === 404) {
+                        showPopup('errorPopup', 'Lista não encontrada.');
                     } else {
-                        const errorData = await response.json();
-                        showPopup('errorPopup', `Erro ao excluir lista: ${errorData.message || 'Erro desconhecido.'}`);
+                        const errorText = await response.text();
+                        showPopup('errorPopup', `Erro ao excluir lista: ${errorText || 'Erro desconhecido.'}`);
                     }
                 } catch (error) {
                     console.error('Erro de rede ou ao excluir lista:', error);
@@ -501,51 +612,54 @@
             }
         }
 
-        // Lógica para submissão do formulário (criação ou edição)
+        // Lógica para submissão do formulário principal (criação ou edição)
         listaForm.addEventListener('submit', async (event) => {
-            event.preventDefault(); // Previne o envio padrão do formulário
+            event.preventDefault();
 
             const id = listaIdInput.value;
             const titulo = tituloInput.value;
             const descricao = descricaoInput.value;
-            // A data de criação e o usuário serão definidos no backend
-            // A categoria pode ser null ou você precisaria de um campo para selecioná-la
+            const categoriaId = categoriaIdSelect.value;
 
             let method = 'POST';
-            let url = '/listas'; // Para criação de nova lista (via ListaWebController)
+            let url = '/listas';
 
-            const data = {
-                titulo: titulo,
-                descricao: descricao,
-                // dataCriacao: new Date().toISOString().split('T')[0], // Backend deve lidar com isso
-                // usuario: { id: usuarioIdDaSessao }, // Backend deve obter isso da sessão
-                // categoria: null // Ou ID da categoria selecionada
-            };
+            const formData = new URLSearchParams();
+            formData.append('titulo', titulo);
+            formData.append('descricao', descricao);
+            formData.append('categoriaId', categoriaId);
 
-            if (id) { // Se o ID estiver presente, é uma edição
+            if (id) {
                 method = 'PUT';
-                url = `/api/listas/${id}`; // Para atualização (via ListaController API)
-                // Para PUT, o backend espera o objeto completo, incluindo o ID
-                data.id = parseInt(id); // Garante que o ID é um número
+                url = `/listas/${id}`;
             }
 
             try {
                 const response = await fetch(url, {
                     method: method,
                     headers: {
-                        'Content-Type': 'application/json'
-                        // Adicione headers de autenticação se sua API exigir (ex: Authorization: Bearer token)
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: JSON.stringify(data) // Envia os dados como JSON
+                    body: formData.toString()
                 });
 
                 if (response.ok) {
                     showPopup('successPopup', `Lista ${id ? 'atualizada' : 'salva'} com sucesso!`);
-                    resetForm(); // Limpa o formulário
-                    setTimeout(() => { window.location.reload(); }, 1000); // Recarrega a página
+                    resetForm();
+                    setTimeout(() => { window.location.reload(); }, 1000);
+                } else if (response.status === 401) {
+                    showPopup('errorPopup', 'Não autorizado. Faça login novamente.');
+                    setTimeout(() => { window.location.href = '/login'; }, 2000);
+                } else if (response.status === 403) {
+                    showPopup('errorPopup', 'Você não tem permissão para realizar esta operação.');
+                } else if (response.status === 404) {
+                    showPopup('errorPopup', 'Recurso não encontrado.');
+                } else if (response.status === 400) {
+                    const errorText = await response.text();
+                    showPopup('errorPopup', `Erro de validação: ${errorText}`);
                 } else {
-                    const errorData = await response.json();
-                    showPopup('errorPopup', `Erro ao ${id ? 'atualizar' : 'salvar'} lista: ${errorData.message || 'Erro desconhecido.'}`);
+                    const errorText = await response.text();
+                    showPopup('errorPopup', `Erro ao ${id ? 'atualizar' : 'salvar'} lista: ${errorText || 'Erro desconhecido.'}`);
                 }
             } catch (error) {
                 console.error('Erro de rede ou ao processar lista:', error);
@@ -553,28 +667,110 @@
             }
         });
 
+        // --- Funções para o Modal de Adicionar Categoria ---
+        function openAddCategoryModal() {
+            addCategoryModal.style.display = 'flex'; // Usa flex para centralizar
+            newCategoryNameInput.value = ''; // Limpa o campo
+            newCategoryNameInput.focus(); // Coloca o foco no campo
+        }
 
-        // Lógica específica para lista.html ao carregar a página (reutilizada e adaptada)
-        window.onload = function() {
+        function closeAddCategoryModal() {
+            addCategoryModal.style.display = 'none';
+        }
+
+        // Fechar modal ao clicar fora dele
+        window.addEventListener('click', function(event) {
+            if (event.target == addCategoryModal) {
+                closeAddCategoryModal();
+            }
+        });
+
+        // Lógica para submissão do formulário de adicionar categoria
+        addCategoryForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const newCategoryName = newCategoryNameInput.value;
+            if (!newCategoryName) {
+                showPopup('errorPopup', 'O nome da categoria não pode ser vazio.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/categorias', { // Endpoint da API para categorias
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ nome: newCategoryName })
+                });
+
+                if (response.ok) {
+                    showPopup('successPopup', 'Categoria adicionada com sucesso!');
+                    closeAddCategoryModal();
+                    await populateCategoryDropdowns(); // Recarrega os dropdowns de categoria
+                    // Opcional: pré-selecionar a nova categoria no dropdown principal
+                    // categoriaIdSelect.value = novaCategoria.id; // Se a API retornar o ID
+                } else {
+                    const errorData = await response.json();
+                    showPopup('errorPopup', `Erro ao adicionar categoria: ${errorData.message || 'Erro desconhecido.'}`);
+                }
+            } catch (error) {
+                console.error('Erro de rede ou ao adicionar categoria:', error);
+                showPopup('errorPopup', 'Erro de conexão ao adicionar categoria. Tente novamente.');
+            }
+        });
+
+        /**
+         * Popula os dropdowns de categoria buscando dados da API.
+         */
+        async function populateCategoryDropdowns() {
+            try {
+                const response = await fetch('/api/categorias'); // Endpoint para listar categorias
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar categorias.');
+                }
+                const categories = await response.json();
+
+                // Limpa os dropdowns existentes
+                categoriaIdSelect.innerHTML = '<option value="">Selecione uma categoria</option>';
+
+                // Adiciona as novas opções
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.nome;
+                    categoriaIdSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Erro ao popular categorias:', error);
+                showPopup('errorPopup', 'Não foi possível carregar as categorias.');
+            }
+        }
+
+        // Lógica específica para lista.html ao carregar a página
+        window.onload = async function() {
             const errorType = getUrlParameter('erro');
             const success = getUrlParameter('sucesso');
-            let errorMessage = '';
-            let successMessage = '';
+
+            // Primeiro, popula as categorias
+            await populateCategoryDropdowns();
 
             if (errorType === 'validacao') {
-                errorMessage = 'Erro de validação ao salvar/atualizar a lista. Verifique os campos.';
-                showPopup('errorPopup', errorMessage);
+                showPopup('errorPopup', 'Erro de validação ao salvar/atualizar a lista. Verifique os campos.');
             } else if (errorType === 'inesperado') {
-                errorMessage = 'Ocorreu um erro inesperado ao processar sua solicitação.';
-                showPopup('errorPopup', errorMessage);
+                showPopup('errorPopup', 'Ocorreu um erro inesperado ao processar sua solicitação.');
             } else if (errorType === 'nao_logado') {
-                errorMessage = 'Sua sessão expirou ou você não está logado. Por favor, faça login novamente.';
-                showPopup('errorPopup', errorMessage);
-            } else if (success === 'true') {
-                successMessage = 'Operação realizada com sucesso!'; // Mensagem genérica para sucesso
-                showPopup('successPopup', successMessage);
-                // Limpa os parâmetros da URL após exibir a mensagem
-                history.replaceState({}, document.title, window.location.pathname);
+                showPopup('errorPopup', 'Sua sessão expirou ou você não está logado. Por favor, faça login novamente.');
+                setTimeout(function() { window.location.href = '/login'; }, 2000);
+            } else if (errorType === 'categoria_nao_encontrada') {
+                showPopup('errorPopup', 'A categoria selecionada não foi encontrada.');
+            } else if (success === 'lista_criada') {
+                showPopup('successPopup', 'Lista cadastrada com sucesso!');
+            } else if (success === 'lista_atualizada') {
+                showPopup('successPopup', 'Lista atualizada com sucesso!');
+            } else if (success === 'lista_deletada') {
+                showPopup('successPopup', 'Lista excluída com sucesso!');
             }
         };
     </script>

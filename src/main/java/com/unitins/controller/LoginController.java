@@ -51,7 +51,7 @@ public class LoginController {
      * @param form Mapa contendo os dados do formulário (chaves esperadas: "email" e "senha").
      * @param session Objeto de sessão do Micronaut para gerenciar o estado do usuário (autenticado ou não).
      * @return Um redirecionamento HTTP:
-     * - Para "/login?sucesso=true" em caso de login bem-sucedido.
+     * - Para "/listas" em caso de login bem-sucedido.
      * - Para "/login?erro=invalido" em caso de falha na autenticação.
      * - Um erro 500 se houver um problema interno ao construir a URI de redirecionamento.
      */
@@ -60,26 +60,19 @@ public class LoginController {
         String email = form.get("email");
         String senhaFormulario = form.get("senha"); // Senha em texto plano recebida do formulário
 
-        // 1. Busca o usuário no banco de dados pelo email fornecido
-        //    É crucial que o UsuarioRepository tenha um método `findByEmail(String email)`
         Optional<Usuario> usuarioOptional = usuarioRepository.findByEmail(email);
 
-        // 2. Verifica se o usuário foi encontrado E se a senha fornecida corresponde à senha HASHED do banco de dados
-        //    `BCrypt.checkpw(senhaEmTextoClaro, senhaHashedDoBanco)` compara a senha fornecida com a senha armazenada.
-        //    Isso pressupõe que a senha no banco de dados foi previamente hashed usando `BCrypt.hashpw()`.
         if (usuarioOptional.isPresent() && BCrypt.checkpw(senhaFormulario, usuarioOptional.get().senha())) {
             // Se a autenticação for bem-sucedida:
             // Armazena o ID do usuário na sessão. Isso marca o usuário como "logado".
             session.put("usuarioId", usuarioOptional.get().id()); // Acessa o ID do record Usuario usando .id()
 
-            // Redireciona para a página de login com um parâmetro de sucesso.
-            // O JavaScript em 'login.html' detectará este parâmetro e fará o redirecionamento final para a área logada.
+            // Redireciona DIRETAMENTE para a página de listas.
             try {
-                URI uri = new URI("/login?sucesso=true");
+                URI uri = new URI("/listas"); // Redirecionamento direto para /listas
                 return HttpResponse.redirect(uri);
             } catch (URISyntaxException ex) {
-                // Em caso de erro ao construir a URI, loga a exceção e retorna um erro 500 (Internal Server Error).
-                ex.printStackTrace(); // Loga o stack trace para depuração
+                ex.printStackTrace();
                 return HttpResponse.serverError("Erro ao construir URI de redirecionamento de sucesso.");
             }
         } else {
@@ -89,8 +82,7 @@ public class LoginController {
                 URI uri = new URI("/login?erro=invalido");
                 return HttpResponse.redirect(uri);
             } catch (URISyntaxException ex) {
-                // Em caso de erro ao construir a URI, loga a exceção e retorna um erro 500.
-                ex.printStackTrace(); // Loga o stack trace para depuração
+                ex.printStackTrace();
                 return HttpResponse.serverError("Erro ao construir URI de redirecionamento de erro de login.");
             }
         }
