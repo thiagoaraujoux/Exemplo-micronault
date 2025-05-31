@@ -1,18 +1,25 @@
-// src/main/java/com/unitins/model/ApiResponseMessage.java
 package com.unitins.model;
 
 import io.micronaut.serde.annotation.Serdeable;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 @Serdeable
-@Schema(description = "Estrutura para mensagens de resposta da API")
-public record ApiResponseMessage(
-    @Schema(description = "Mensagem descritiva da operação", example = "Operação realizada com sucesso.")
-    String message,
+public class ApiResponseMessage {
+    private String message;
+    private boolean success;
 
-    @Schema(description = "Indica se a operação foi bem-sucedida", example = "true")
-    boolean success
-) {
+    public ApiResponseMessage(String message, boolean success) {
+        this.message = message;
+        this.success = success;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
     public static ApiResponseMessage success(String message) {
         return new ApiResponseMessage(message, true);
     }

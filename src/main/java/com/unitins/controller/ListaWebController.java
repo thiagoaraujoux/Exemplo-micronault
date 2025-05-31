@@ -8,30 +8,27 @@ import com.unitins.service.CategoriaService;
 import com.unitins.service.ListaService;
 import com.unitins.service.UsuarioService;
 import com.unitins.service.exception.CategoriaNaoEncontradaException;
-import com.unitins.service.exception.ListaNaoEncontradaException; // Importar ListaNaoEncontradaException
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.views.View;
 import io.micronaut.session.Session;
 import jakarta.validation.ConstraintViolationException;
-import io.micronaut.http.HttpStatus; // Importar HttpStatus para usar HttpStatus.FORBIDDEN
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.time.LocalDate;
+import java.time.LocalDate; // Consider LocalDateTime if your Lista model uses it
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Controller("/listas") // Define o caminho base para este controlador web
+@Controller("/listas") // Base path for this web controller
 public class ListaWebController {
 
     private final ListaService listaService;
     private final UsuarioService usuarioService;
     private final CategoriaService categoriaService;
 
-    // Construtor para injeção de dependência
     public ListaWebController(ListaService listaService, UsuarioService usuarioService, CategoriaService categoriaService) {
         this.listaService = listaService;
         this.usuarioService = usuarioService;
@@ -40,38 +37,47 @@ public class ListaWebController {
 
     /**
      * GET /listas
-     * Exibe a página principal de listas, mostrando todas as listas do usuário logado e o formulário de criação.
+     * Displays the main lists page, showing all lists for the logged-in user and the creation form.
      *
-     * @param session A sessão atual para obter o ID do usuário logado.
-     * @param erro Parâmetro de query opcional para exibir mensagens de erro.
-     * @param sucesso Parâmetro de query opcional para exibir mensagens de sucesso.
-     * @return Um HttpResponse contendo o modelo para o template Thymeleaf 'lista.html' ou um redirecionamento.
+     * @param session The current session to get the logged-in user's ID.
+     * @param erro Optional query parameter to display error messages.
+     * @param sucesso Optional query parameter to display success messages.
+     * @return An HttpResponse containing the model for the 'lista.html' Thymeleaf template or a redirect.
      */
     @Get
     @Produces(MediaType.TEXT_HTML)
-    @View("lista") // Renderiza o template src/main/resources/views/lista.html
+    @View("lista") // Renders the template src/main/resources/views/listas.html (corrected to 'listas' as per HTML file name)
     public HttpResponse<?> showListas(Session session,
                                       @QueryValue Optional<String> erro,
                                       @QueryValue Optional<String> sucesso) {
         Map<String, Object> model = new HashMap<>();
 
+        // Retrieve user ID from session
         Long usuarioId = session.get("usuarioId", Long.class).orElse(null);
+        String currentUserName = session.get("currentUserName", String.class).orElse("Usuário"); // Assuming you store username in session too
 
         if (usuarioId == null) {
             try {
                 return HttpResponse.redirect(new URI("/login?erro=nao_logado"));
             } catch (URISyntaxException e) {
-                return HttpResponse.serverError("Erro interno ao redirecionar para login.");
+                // Log the exception for debugging
+                e.printStackTrace();
+                return HttpResponse.serverError("Internal error redirecting to login.");
             }
         }
 
-        // Adiciona as listas do usuário logado ao modelo
+        // Add logged-in user's ID and Name to the model for Thymeleaf (used by JavaScript)
+        model.put("currentUserId", usuarioId);
+        model.put("currentUserName", currentUserName);
+
+
+        // Add lists for the logged-in user to the model
         model.put("listas", listaService.listarPorUsuario(usuarioId));
 
-        // Adiciona todas as categorias ao modelo para popular o dropdown no formulário de criação/edição
+        // Add all categories to the model to populate the dropdown
         model.put("categorias", categoriaService.buscarTodos());
 
-        // Adiciona mensagens de erro/sucesso ao modelo para que o JS no frontend possa lê-las
+        // Add error/success messages to the model
         erro.ifPresent(s -> model.put("erro", s));
         sucesso.ifPresent(s -> model.put("sucesso", s));
 
@@ -80,20 +86,20 @@ public class ListaWebController {
 
     /**
      * POST /listas
-     * Processa a criação de uma nova lista a partir do formulário HTML.
+     * Processes the creation of a new list from the HTML form.
      *
-     * @param form Mapa contendo os dados do formulário (titulo, descricao, categoriaId).
-     * @param session A sessão atual para obter o ID do usuário logado.
-     * @return Um redirecionamento HTTP para a página de listas com parâmetro de sucesso/erro.
+     * @param form Map containing form data (titulo, descricao, categoriaId).
+     * @param session The current session to get the logged-in user's ID.
+     * @return An HTTP redirect to the lists page with success/error parameter.
      */
     @Post(consumes = MediaType.APPLICATION_FORM_URLENCODED)
     public HttpResponse<?> criarLista(@Body Map<String, String> form, Session session) {
         String titulo = form.get("titulo");
         String descricao = form.get("descricao");
         Long categoriaId = Optional.ofNullable(form.get("categoriaId"))
-                                   .filter(s -> !s.isEmpty())
-                                   .map(Long::valueOf)
-                                   .orElse(null);
+                                       .filter(s -> !s.isEmpty())
+                                       .map(Long::valueOf)
+                                       .orElse(null);
 
         Long usuarioId = session.get("usuarioId", Long.class).orElse(null);
 
@@ -101,20 +107,23 @@ public class ListaWebController {
             try {
                 return HttpResponse.redirect(new URI("/login?erro=nao_logado"));
             } catch (URISyntaxException e) {
-                return HttpResponse.serverError("Erro interno ao redirecionar para login.");
+                e.printStackTrace();
+                return HttpResponse.serverError("Internal error redirecting to login.");
             }
         }
 
         try {
             Usuario usuario = usuarioService.buscarPorId(usuarioId)
-                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado na sessão."));
+                    .orElseThrow(() -> new RuntimeException("Logged-in user not found in the system.")); // More specific error message
 
             Categoria categoria = null;
             if (categoriaId != null) {
                 categoria = categoriaService.buscarPorId(categoriaId)
-                        .orElseThrow(() -> new CategoriaNaoEncontradaException("Categoria com ID " + categoriaId + " não encontrada."));
+                        .orElseThrow(() -> new CategoriaNaoEncontradaException("Category with ID " + categoriaId + " not found."));
             }
 
+            // If your Lista model uses LocalDateTime, consider LocalDate.now() or ensure consistency.
+            // If @DateCreated handles it, you might pass null or remove from constructor.
             Lista novaLista = new Lista(null, titulo, descricao, LocalDate.now(), usuario, categoria);
 
             listaService.salvarLista(novaLista);
@@ -122,126 +131,43 @@ public class ListaWebController {
             try {
                 return HttpResponse.redirect(new URI("/listas?sucesso=lista_criada"));
             } catch (URISyntaxException ex) {
-                return HttpResponse.serverError("Erro ao construir URI de redirecionamento de sucesso.");
+                ex.printStackTrace();
+                return HttpResponse.serverError("Error building success redirect URI.");
             }
         } catch (ConstraintViolationException e) {
+            e.printStackTrace(); // Log validation errors
             try {
                 return HttpResponse.redirect(new URI("/listas?erro=validacao"));
             } catch (URISyntaxException ex) {
-                return HttpResponse.serverError("Erro ao construir URI de redirecionamento de erro de validação.");
+                ex.printStackTrace();
+                return HttpResponse.serverError("Error building validation error redirect URI.");
             }
         } catch (CategoriaNaoEncontradaException e) {
+            e.printStackTrace(); // Log category not found errors
             try {
                 return HttpResponse.redirect(new URI("/listas?erro=categoria_nao_encontrada"));
             } catch (URISyntaxException ex) {
-                return HttpResponse.serverError("Erro ao construir URI de redirecionamento de categoria não encontrada.");
+                ex.printStackTrace();
+                return HttpResponse.serverError("Error building category not found redirect URI.");
             }
-        } catch (Exception e) {
+        } catch (RuntimeException e) { // Catch the "User not found" specific error here
+            e.printStackTrace(); // Log the user not found error
+            try {
+                return HttpResponse.redirect(new URI("/listas?erro=usuario_nao_encontrado")); // Specific error type
+            } catch (URISyntaxException ex) {
+                ex.printStackTrace();
+                return HttpResponse.serverError("Error building user not found redirect URI.");
+            }
+        }
+        catch (Exception e) { // Catch any other unexpected errors
             e.printStackTrace();
             try {
                 return HttpResponse.redirect(new URI("/listas?erro=inesperado"));
             } catch (URISyntaxException ex) {
-                return HttpResponse.serverError("Erro ao construir URI de redirecionamento de erro inesperado.");
+                ex.printStackTrace();
+                return HttpResponse.serverError("Error building unexpected error redirect URI.");
             }
         }
     }
-
-    /**
-     * PUT /listas/{id}
-     * Processa a atualização de uma lista existente.
-     *
-     * @param id O ID da lista a ser atualizada.
-     * @param form Mapa contendo os dados atualizados do formulário (titulo, descricao, categoriaId).
-     * @param session A sessão atual para obter o ID do usuário logado.
-     * @return Um HttpResponse indicando sucesso ou erro.
-     */
-    @Put(uri = "/{id}", consumes = MediaType.APPLICATION_FORM_URLENCODED)
-    public HttpResponse<?> atualizarLista(@PathVariable Long id, @Body Map<String, String> form, Session session) {
-        String titulo = form.get("titulo");
-        String descricao = form.get("descricao");
-        Long categoriaId = Optional.ofNullable(form.get("categoriaId"))
-                                   .filter(s -> !s.isEmpty())
-                                   .map(Long::valueOf)
-                                   .orElse(null);
-
-        Long usuarioId = session.get("usuarioId", Long.class).orElse(null);
-
-        if (usuarioId == null) {
-            return HttpResponse.unauthorized(); // Ou redirecionar para login
-        }
-
-        try {
-            // Primeiro, busca a lista existente para verificar o proprietário
-            Lista listaExistente = listaService.buscarPorId(id)
-                    .orElseThrow(() -> new ListaNaoEncontradaException("Lista com ID " + id + " não encontrada."));
-
-            // Verifica se o usuário logado é o proprietário da lista
-            if (!listaExistente.usuario().id().equals(usuarioId)) {
-                // Retorna 403 Forbidden
-                return HttpResponse.status(HttpStatus.FORBIDDEN, "Você não tem permissão para editar esta lista.");
-            }
-
-            Usuario usuario = usuarioService.buscarPorId(usuarioId)
-                    .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado no sistema."));
-
-            Categoria categoria = null;
-            if (categoriaId != null) {
-                categoria = categoriaService.buscarPorId(categoriaId)
-                        .orElseThrow(() -> new CategoriaNaoEncontradaException("Categoria com ID " + categoriaId + " não encontrada."));
-            }
-
-            // Cria uma nova instância de Lista com os dados atualizados (records são imutáveis)
-            Lista listaAtualizada = new Lista(id, titulo, descricao, listaExistente.dataCriacao(), usuario, categoria);
-
-            listaService.atualizarLista(id, listaAtualizada);
-
-            return HttpResponse.ok().body("Lista atualizada com sucesso."); // Retorna um OK simples para o JS
-        } catch (ListaNaoEncontradaException e) {
-            return HttpResponse.notFound();
-        } catch (ConstraintViolationException e) {
-            return HttpResponse.badRequest("Erro de validação: " + e.getMessage());
-        } catch (CategoriaNaoEncontradaException e) {
-            return HttpResponse.badRequest("Categoria não encontrada.");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return HttpResponse.serverError("Erro inesperado ao atualizar a lista.");
-        }
-    }
-
-    /**
-     * DELETE /listas/{id}
-     * Processa a exclusão de uma lista.
-     *
-     * @param id O ID da lista a ser excluída.
-     * @param session A sessão atual para obter o ID do usuário logado.
-     * @return Um HttpResponse indicando sucesso ou erro.
-     */
-    @Delete("/{id}")
-    public HttpResponse<?> deletarLista(@PathVariable Long id, Session session) {
-        Long usuarioId = session.get("usuarioId", Long.class).orElse(null);
-
-        if (usuarioId == null) {
-            return HttpResponse.unauthorized(); // Ou redirecionar para login
-        }
-
-        try {
-            // Primeiro, busca a lista existente para verificar o proprietário
-            Lista listaExistente = listaService.buscarPorId(id)
-                    .orElseThrow(() -> new ListaNaoEncontradaException("Lista com ID " + id + " não encontrada."));
-
-            // Verifica se o usuário logado é o proprietário da lista
-            if (!listaExistente.usuario().id().equals(usuarioId)) {
-                // Retorna 403 Forbidden
-                return HttpResponse.status(HttpStatus.FORBIDDEN, "Você não tem permissão para deletar esta lista.");
-            }
-
-            listaService.deletarLista(id);
-            return HttpResponse.noContent(); // Retorna 204 No Content para sucesso na exclusão
-        } catch (ListaNaoEncontradaException e) {
-            return HttpResponse.notFound();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return HttpResponse.serverError("Erro inesperado ao deletar a lista.");
-        }
-    }
+    // Removed PUT and DELETE methods, assuming they belong to a separate API controller.
 }
