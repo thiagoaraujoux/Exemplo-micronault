@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,11 +10,13 @@
         .list-card {
             margin-bottom: 1.5rem;
         }
+
         .modal-card-body .field {
             margin-bottom: 1rem;
         }
     </style>
 </head>
+
 <body>
     <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
         <div class="navbar-brand">
@@ -28,7 +31,8 @@
             </div>
             <div class="navbar-end">
                 <div class="navbar-item">
-                    <span class="has-text-weight-bold has-text-white" th:text="'Bem-vindo, ' + ${currentUserName} + '!'">Bem-vindo!</span>
+                    <span class="has-text-weight-bold has-text-white"
+                        th:text="'Bem-vindo, ' + ${currentUserName} + '!'">Bem-vindo!</span>
                 </div>
                 <div class="navbar-item">
                     <div class="buttons">
@@ -61,13 +65,15 @@
                 <div class="field">
                     <label class="label" for="titulo">Título</label>
                     <div class="control">
-                        <input class="input" type="text" id="titulo" name="titulo" placeholder="Título da Lista" required>
+                        <input class="input" type="text" id="titulo" name="titulo" placeholder="Título da Lista"
+                            required>
                     </div>
                 </div>
                 <div class="field">
                     <label class="label" for="descricao">Descrição</label>
                     <div class="control">
-                        <textarea class="textarea" id="descricao" name="descricao" placeholder="Descrição da Lista"></textarea>
+                        <textarea class="textarea" id="descricao" name="descricao"
+                            placeholder="Descrição da Lista"></textarea>
                     </div>
                 </div>
                 <div class="field">
@@ -76,9 +82,8 @@
                         <div class="select is-fullwidth">
                             <select id="categoriaId" name="categoriaId">
                                 <option value="">Nenhuma Categoria</option>
-                                <option th:each="categoria : ${categorias}"
-                                        th:value="${categoria.id}"
-                                        th:text="${categoria.nome}"></option>
+                                <option th:each="categoria : ${categorias}" th:value="${categoria.id}"
+                                    th:text="${categoria.nome}"></option>
                             </select>
                         </div>
                     </div>
@@ -102,16 +107,16 @@
                         <div class="card-content">
                             <p class="title is-4" th:text="${lista.titulo}"></p>
                             <p class="subtitle is-6" th:text="${lista.descricao}"></p>
-                            <p class="is-size-7 has-text-grey" th:text="'Criado em: ' + ${#temporals.format(lista.dataCriacao, 'dd/MM/yyyy')}"></p>
-                            <p th:if="${lista.categoria()}" class="tag is-info mt-2" th:text="${lista.categoria().nome}"></p>
-                            <p th:unless="${lista.categoria()}" class="tag is-light mt-2">Sem Categoria</p>
+                            <p class="is-size-7 has-text-grey"
+                                th:text="'Criado em: ' + ${#temporals.format(lista.dataCriacao, 'dd/MM/yyyy')}"></p>
+                            <p th:if="${lista.categoria != null}" class="tag is-info mt-2"
+                                th:text="${lista.categoria.nome}"></p>
+                            <p th:unless="${lista.categoria != null}" class="tag is-light mt-2">Sem Categoria</p>
                         </div>
                         <footer class="card-footer">
-                            <a href="#" class="card-footer-item edit-list-button"
-                               th:data-id="${lista.id}"
-                               th:data-titulo="${lista.titulo}"
-                               th:data-descricao="${lista.descricao}"
-                               th:data-categoria-id="${lista.categoria() != null ? lista.categoria().id : ''}">
+                            <a href="#" class="card-footer-item edit-list-button" th:data-id="${lista.id}"
+                                th:data-titulo="${lista.titulo}" th:data-descricao="${lista.descricao}"
+                                th:data-categoria-id="${lista.categoria != null ? lista.categoria.id : ''}">
                                 Editar
                             </a>
                             <a href="#" class="card-footer-item delete-list-button" th:data-id="${lista.id}">
@@ -153,9 +158,8 @@
                         <div class="select is-fullwidth">
                             <select id="editCategoriaId">
                                 <option value="">Nenhuma Categoria</option>
-                                <option th:each="categoria : ${categorias}"
-                                        th:value="${categoria.id}"
-                                        th:text="${categoria.nome}"></option>
+                                <option th:each="categoria : ${categorias}" th:value="${categoria.id}"
+                                    th:text="${categoria.nome}"></option>
                             </select>
                         </div>
                     </div>
@@ -186,7 +190,6 @@
             const editCategoriaIdSelect = document.getElementById('editCategoriaId');
             const saveEditButton = document.getElementById('saveEditButton');
             const cancelEditButton = document.getElementById('cancelEditButton');
-            const currentUserId = document.getElementById('currentUserId').value; // Get logged-in user ID
 
             document.querySelectorAll('.edit-list-button').forEach(button => {
                 button.addEventListener('click', (event) => {
@@ -194,7 +197,7 @@
                     const listId = button.dataset.id;
                     const titulo = button.dataset.titulo;
                     const descricao = button.dataset.descricao;
-                    const categoriaId = button.dataset.categoriaId;
+                    const categoriaId = button.dataset.categoriaId; // This will be "" if no category
 
                     editListIdInput.value = listId;
                     editTituloInput.value = titulo;
@@ -222,10 +225,13 @@
             // Save Edit Button Click (This sends JSON to the API controller)
             saveEditButton.addEventListener('click', () => {
                 const listId = editListIdInput.value;
+                const selectedCategoriaId = editCategoriaIdSelect.value; // Get the selected value
+
                 const updatedData = {
                     titulo: editTituloInput.value,
                     descricao: editDescricaoInput.value,
-                    categoriaId: editCategoriaIdSelect.value === '' ? null : parseInt(editCategoriaIdSelect.value)
+                    // Send null if no category is selected, otherwise parse to int
+                    categoriaId: selectedCategoriaId === '' ? null : parseInt(selectedCategoriaId)
                 };
 
                 fetch(`/api/listas/${listId}`, { // Assuming a separate API controller for PUT
@@ -235,30 +241,28 @@
                     },
                     body: JSON.stringify(updatedData)
                 })
-                .then(response => {
-                    if (response.ok) {
-                        window.location.href = '/listas?sucesso=lista_atualizada';
-                    } else {
-                        // Attempt to parse error message from response, assuming it might be JSON or text
-                        response.text().then(text => {
-                            let errorMessage = 'Erro ao atualizar a lista.';
-                            try {
-                                const errorJson = JSON.parse(text);
-                                errorMessage = errorJson.message || errorJson.detail || errorMessage;
-                            } catch (e) {
-                                // If not JSON, use raw text or default message
-                                errorMessage = text || errorMessage;
-                            }
-                            window.location.href = '/listas?erro=' + encodeURIComponent(errorMessage);
-                        }).catch(() => {
-                             window.location.href = '/listas?erro=Erro desconhecido ao atualizar a lista.';
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating list:', error);
-                    window.location.href = '/listas?erro=Erro de rede ao atualizar a lista.';
-                });
+                    .then(response => {
+                        if (response.ok) {
+                            window.location.href = '/listas?sucesso=lista_atualizada';
+                        } else {
+                            response.text().then(text => {
+                                let errorMessage = 'Erro ao atualizar a lista.';
+                                try {
+                                    const errorJson = JSON.parse(text);
+                                    errorMessage = errorJson.message || errorJson.detail || errorMessage;
+                                } catch (e) {
+                                    errorMessage = text || errorMessage;
+                                }
+                                window.location.href = '/listas?erro=' + encodeURIComponent(errorMessage);
+                            }).catch(() => {
+                                window.location.href = '/listas?erro=Erro desconhecido ao atualizar a lista.';
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating list:', error);
+                        window.location.href = '/listas?erro=Erro de rede ao atualizar a lista.';
+                    });
             });
 
             // Delete List Button Click (This sends JSON to the API controller)
@@ -271,35 +275,36 @@
                         fetch(`/api/listas/${listId}`, { // Assuming a separate API controller for DELETE
                             method: 'DELETE',
                             headers: {
-                                'Content-Type': 'application/json' // Or whatever your DELETE API expects
+                                'Content-Type': 'application/json'
                             }
                         })
-                        .then(response => {
-                            if (response.ok || response.status === 204) { // 204 No Content for successful delete
-                                window.location.href = '/listas?sucesso=lista_deletada';
-                            } else {
-                                response.text().then(text => {
-                                    let errorMessage = 'Erro ao deletar a lista.';
-                                    try {
-                                        const errorJson = JSON.parse(text);
-                                        errorMessage = errorJson.message || errorJson.detail || errorMessage;
-                                    } catch (e) {
-                                        errorMessage = text || errorMessage;
-                                    }
-                                    window.location.href = '/listas?erro=' + encodeURIComponent(errorMessage);
-                                }).catch(() => {
-                                    window.location.href = '/listas?erro=Erro desconhecido ao deletar a lista.';
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error deleting list:', error);
-                            window.location.href = '/listas?erro=Erro de rede ao deletar a lista.';
-                        });
+                            .then(response => {
+                                if (response.ok || response.status === 204) { // 204 No Content for successful delete
+                                    window.location.href = '/listas?sucesso=lista_deletada';
+                                } else {
+                                    response.text().then(text => {
+                                        let errorMessage = 'Erro ao deletar a lista.';
+                                        try {
+                                            const errorJson = JSON.parse(text);
+                                            errorMessage = errorJson.message || errorJson.detail || errorMessage;
+                                        } catch (e) {
+                                            errorMessage = text || errorMessage;
+                                        }
+                                        window.location.href = '/listas?erro=' + encodeURIComponent(errorMessage);
+                                    }).catch(() => {
+                                        window.location.href = '/listas?erro=Erro desconhecido ao deletar a lista.';
+                                    });
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error deleting list:', error);
+                                window.location.href = '/listas?erro=Erro de rede ao deletar a lista.';
+                            });
                     }
                 });
             });
         });
     </script>
 </body>
+
 </html>

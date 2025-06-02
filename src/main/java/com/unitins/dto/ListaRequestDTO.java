@@ -1,6 +1,7 @@
 package com.unitins.dto;
 
 import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable; // Importe esta anotação!
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.Size;
  * Utilizado para receber os dados do cliente e validar as informações antes de processá-las.
  */
 @Introspected // Necessário para Micronaut realizar a introspecção e validação
+@Serdeable    // Adicione esta anotação para que o record seja serializável/desserializável
 public record ListaRequestDTO(
     @NotBlank(message = "O título da lista não pode ser vazio.")
     @Size(max = 255, message = "O título da lista não pode ter mais de 255 caracteres.")

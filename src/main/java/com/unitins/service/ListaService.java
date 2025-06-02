@@ -1,5 +1,6 @@
 package com.unitins.service;
 
+import com.unitins.dto.ListaUpdateDTO;
 import com.unitins.model.Lista;
 
 import java.util.Optional;
@@ -18,5 +19,5 @@ public interface ListaService {
 
     void deletarLista(Long id);
 
-    Lista atualizarLista(Long id, Lista lista);
+    Lista atualizarLista(Long id, ListaUpdateDTO listaUpdateDTO);;
 }
