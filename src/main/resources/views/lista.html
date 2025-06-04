@@ -18,6 +18,36 @@
         .modal-card {
             max-width: 600px; /* Ajuste a largura máxima se necessário */
         }
+        /* Estilo para alinhar título e botão de adicionar categoria */
+        .header-with-button {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem; /* Espaçamento após o cabeçalho */
+        }
+
+        /* Estilo para agrupar label, select e botão '+' */
+        .field-with-add-button {
+            display: flex;
+            align-items: flex-end; /* Alinha os itens na base */
+            gap: 0.5rem; /* Espaçamento entre os elementos */
+        }
+
+        .field-with-add-button .control.is-expanded {
+            flex-grow: 1; /* Faz o select ocupar o espaço disponível */
+        }
+
+        /* Ajuste do botão '+' para parecer um ícone */
+        .button.is-small-plus {
+            width: 2.25em; /* Largura para um botão quadrado */
+            height: 2.25em; /* Altura para um botão quadrado */
+            padding: 0; /* Remove padding interno */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.25rem; /* Aumenta o tamanho do "+" */
+            line-height: 1; /* Ajusta a altura da linha */
+        }
     </style>
 </head>
 
@@ -49,7 +79,10 @@
 
     <section class="section">
         <div class="container">
-            <h1 class="title">Minhas Listas de Tarefas</h1>
+            <div class="header-with-button">
+                <h1 class="title is-2">Minhas Listas de Tarefas</h1>
+                
+            </div>
 
             <div id="message-area">
                 <div th:if="${erro}" class="notification is-danger">
@@ -81,14 +114,21 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label" for="categoriaId">Categoria</label>
-                    <div class="control">
-                        <div class="select is-fullwidth">
-                            <select id="categoriaId" name="categoriaId">
-                                <option value="">Nenhuma Categoria</option>
-                                <option th:each="categoria : ${categorias}" th:value="${categoria.id}"
-                                    th:text="${categoria.nome}"></option>
-                            </select>
+                    <label class="label">Categoria</label>
+                    <div class="field-with-add-button">
+                        <div class="control is-expanded">
+                            <div class="select is-fullwidth">
+                                <select id="categoriaId" name="categoriaId">
+                                    <option value="">Nenhuma Categoria</option>
+                                    <option th:each="categoria : ${categorias}" th:value="${categoria.id}"
+                                        th:text="${categoria.nome}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control">
+                            <button class="button is-info is-small-plus" type="button" id="addCategoryButtonCreate">
+                                +
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -157,12 +197,19 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label" for="editCategoriaId">Categoria</label>
-                    <div class="control">
-                        <div class="select is-fullwidth">
-                            <select id="editCategoriaId">
-                                <option value="">Nenhuma Categoria</option>
-                                </select>
+                    <label class="label">Categoria</label>
+                    <div class="field-with-add-button">
+                        <div class="control is-expanded">
+                            <div class="select is-fullwidth">
+                                <select id="editCategoriaId">
+                                    <option value="">Nenhuma Categoria</option>
+                                    </select>
+                            </div>
+                        </div>
+                        <div class="control">
+                            <button class="button is-info is-small-plus" type="button" id="addCategoryButtonEdit">
+                                +
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -217,6 +264,9 @@
             const cancelEditButton = document.getElementById('cancelEditButton');
             const closeEditListModalButton = document.getElementById('closeEditListModalButton');
 
+            // --- NOVO: Botão '+' no modal de edição ---
+            const addCategoryButtonEdit = document.getElementById('addCategoryButtonEdit');
+
             // Função para fechar o modal de edição de lista
             const closeEditModal = () => {
                 editListModal.classList.remove('is-active');
@@ -241,7 +291,7 @@
                     editTituloInput.value = titulo;
                     editDescricaoInput.value = descricao;
 
-                    // *** CORREÇÃO AQUI: Popula o dropdown de categorias dinamicamente ANTES de pré-selecionar ***
+                    // Popula o dropdown de categorias dinamicamente ANTES de pré-selecionar
                     await populateCategoriesDropdown(editCategoriaIdSelect, categoriaId);
 
                     // Abre o modal
@@ -258,8 +308,6 @@
                 const updatedData = {
                     titulo: editTituloInput.value,
                     descricao: editDescricaoInput.value,
-                    // Se o Micronaut espera um ID, converta para número.
-                    // Se espera um objeto Categoria, você teria que montar { id: parseInt(selectedCategoriaId) }
                     categoriaId: selectedCategoriaId === '' ? null : parseInt(selectedCategoriaId)
                 };
 
@@ -335,7 +383,7 @@
                 });
             });
 
-            // --- NOVO: Funções para o Modal de Categoria ---
+            // --- Gerenciamento do Modal de Categoria ---
             const categoryModal = document.getElementById('categoryModal');
             const categoryModalTitle = document.getElementById('categoryModalTitle');
             const categoryIdInput = document.getElementById('categoryId');
@@ -343,6 +391,7 @@
             const saveCategoryButton = document.getElementById('saveCategoryButton');
             const cancelCategoryButton = document.getElementById('cancelCategoryButton');
             const closeCategoryModalButton = document.getElementById('closeCategoryModalButton');
+            const addCategoryButtonCreate = document.getElementById('addCategoryButtonCreate'); // Botão no formulário de criação
 
             // Função para abrir o modal de categoria (para adicionar ou editar)
             const openCategoryModal = (categoria = null) => {
@@ -368,11 +417,13 @@
             cancelCategoryButton.addEventListener('click', closeCategoryModal);
             document.querySelector('#categoryModal .modal-background').addEventListener('click', closeCategoryModal);
 
-            // Adicione um botão "Adicionar Categoria" ou um link no navbar para abrir este modal
-            // Por enquanto, não há um botão direto na página "Minhas Listas" para isso.
-            // Se você quiser um, adicione no HTML: <button class="button is-link" id="addCategoryButton">Adicionar Categoria</button>
-            // E o event listener:
-            // document.getElementById('addCategoryButton')?.addEventListener('click', () => openCategoryModal());
+            
+
+            // *** NOVO: Event listener para o botão '+' no formulário de criação ***
+            addCategoryButtonCreate.addEventListener('click', () => openCategoryModal());
+
+            // *** NOVO: Event listener para o botão '+' no modal de edição ***
+            addCategoryButtonEdit.addEventListener('click', () => openCategoryModal());
 
 
             // Lógica para Salvar/Atualizar Categoria
@@ -397,8 +448,8 @@
                     if (response.ok) {
                         alert(`Categoria ${id ? 'atualizada' : 'criada'} com sucesso!`);
                         closeCategoryModal();
-                        // Redireciona ou atualiza a página para que o dropdown de categorias seja recarregado
-                        window.location.href = '/listas'; // Recarrega a página para ver as categorias atualizadas
+                        // Recarrega a página para que o dropdown de categorias seja recarregado
+                        window.location.href = '/listas'; 
                     } else {
                         response.text().then(text => {
                             let errorMessage = `Erro ao ${id ? 'atualizar' : 'criar'} categoria.`;
@@ -420,7 +471,6 @@
 
 
             // --- Função Reutilizável para Popular Dropdowns de Categoria ---
-            // Esta função será usada tanto para o formulário de criação quanto para o de edição
             async function populateCategoriesDropdown(selectElement, selectedCategoriaId = '') {
                 try {
                     const response = await fetch('/api/categorias'); // Endpoint da sua API REST para listar categorias
@@ -446,17 +496,8 @@
                     }
                 } catch (error) {
                     console.error('Erro ao popular dropdown de categorias:', error);
-                    // Opcional: Adicionar uma mensagem de erro visual para o usuário
-                    // alert('Não foi possível carregar as categorias. Tente novamente.');
                 }
             }
-
-            // Popula o dropdown de categoria no formulário de criação de lista na carga da página
-            // O Thymeleaf já faz isso, mas esta função pode ser útil se você precisar recarregar
-            // por alguma razão, ou se o Thymeleaf não estiver funcionando como esperado.
-            // Por enquanto, o Thymeleaf já está preenchendo isso na carga inicial.
-            // Se você quiser que o JS sempre popule, pode descomentar:
-            // populateCategoriesDropdown(document.getElementById('categoriaId'));
 
         });
     </script>
