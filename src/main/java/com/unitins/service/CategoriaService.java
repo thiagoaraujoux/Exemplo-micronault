@@ -12,11 +12,9 @@ public interface CategoriaService {
 
     Optional<Categoria> buscarPorId(Long id);
 
-    Categoria salvarCategoria(Categoria categoria); // Método para salvar/criar
+    Categoria salvarCategoria(Categoria categoria); 
 
     void deletarCategoria(Long id);
 
-    Categoria atualizarCategoria(Long id, Categoria categoria);
-
-    // Você pode adicionar outros métodos específicos de negócio aqui
+    Categoria atualizarCategoria(Long id, String novoNome);
 }

@@ -18,7 +18,7 @@ import java.time.LocalDate; // Para dataCriacao
 @Schema(description = "Representa uma lista do sistema") // Documentação Swagger/OpenAPI
 public record Lista(
     @Id // Indica que este campo é a chave primária
-    @GeneratedValue(GeneratedValue.Type.AUTO) // Configura a geração automática do ID
+    @GeneratedValue(GeneratedValue.Type.IDENTITY) // Configura a geração automática do ID
     @Schema(description = "Identificador único da lista", example = "1")
     Long id,
 

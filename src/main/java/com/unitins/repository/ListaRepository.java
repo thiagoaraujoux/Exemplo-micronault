@@ -4,6 +4,7 @@ import io.micronaut.data.jdbc.annotation.JdbcRepository;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.repository.CrudRepository;
 import io.micronaut.data.annotation.Join;
+import io.micronaut.data.annotation.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,9 @@ import com.unitins.model.Categoria;
 @JdbcRepository(dialect = Dialect.MYSQL)
 public interface ListaRepository extends CrudRepository<Lista, Long> {
 
+    @Query("UPDATE lista SET titulo = :titulo, descricao = :descricao, categoria_id = :categoriaId WHERE id = :id")
+    int update(Long id, String titulo, String descricao, Long categoriaId);
+    
     /**
      * Busca uma lista pelo seu ID, carregando o usuário e a categoria associados.
      * Isso é essencial para evitar que 'usuario' e 'categoria' sejam nulos ao serem recuperados.

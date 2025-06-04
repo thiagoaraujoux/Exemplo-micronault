@@ -1,3 +1,4 @@
+// src/main/java/com/unitins/controller/CategoriaController.java
 package com.unitins.controller;
 
 import com.unitins.model.Categoria;
@@ -36,15 +37,12 @@ public class CategoriaController {
      * Lista todas as categorias existentes.
      */
     @Get(produces = MediaType.APPLICATION_JSON) // Removido o "/" e adicionado MediaType
-    @Operation(summary = "Listar todas as categorias",
-                description = "Retorna a lista de todas as categorias cadastradas.")
-    @ApiResponse(responseCode = "200", description = "Lista de categorias retornada com sucesso.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(type = "array", implementation = Categoria.class)))
+    @Operation(summary = "Listar todas as categorias", description = "Retorna a lista de todas as categorias cadastradas.")
+    @ApiResponse(responseCode = "200", description = "Lista de categorias retornada com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(type = "array", implementation = Categoria.class)))
     @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar listar categorias.")
     public HttpResponse<List<Categoria>> listarTodos() {
         List<Categoria> categorias = StreamSupport.stream(categoriaService.buscarTodos().spliterator(), false)
-                                                .collect(Collectors.toList());
+                .collect(Collectors.toList());
         return HttpResponse.ok(categorias);
     }
 
@@ -53,17 +51,10 @@ public class CategoriaController {
      * Busca uma categoria pelo ID informado.
      */
     @Get("/{id}")
-    @Operation(summary = "Buscar categoria por ID",
-                description = "Retorna a categoria correspondente ao ID informado.")
-    @ApiResponse(responseCode = "200", description = "Categoria encontrada com sucesso.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = Categoria.class)))
-    @ApiResponse(responseCode = "404", description = "Categoria não encontrada para o ID especificado.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
-    @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar buscar a categoria.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
+    @Operation(summary = "Buscar categoria por ID", description = "Retorna a categoria correspondente ao ID informado.")
+    @ApiResponse(responseCode = "200", description = "Categoria encontrada com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Categoria.class)))
+    @ApiResponse(responseCode = "404", description = "Categoria não encontrada para o ID especificado.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
+    @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar buscar a categoria.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
     public HttpResponse<?> buscarPorId(@PathVariable Long id) {
         Optional<Categoria> categoriaOptional = categoriaService.buscarPorId(id);
         if (categoriaOptional.isPresent()) {
@@ -76,24 +67,20 @@ public class CategoriaController {
     /**
      * POST /api/categorias
      * Cria uma nova categoria.
-     * Returns the created Categoria on success (201 Created), or an ApiResponseMessage on error (500 Internal Server Error).
+     * Returns the created Categoria on success (201 Created), or an
+     * ApiResponseMessage on error (500 Internal Server Error).
      */
-    @Post(consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON) // Removido o "/" e adicionado MediaType
-    @Operation(summary = "Criar nova categoria",
-                description = "Cria uma nova categoria com os dados fornecidos no corpo da requisição.")
-    @ApiResponse(responseCode = "201", description = "Categoria criada com sucesso.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = Categoria.class)))
-    @ApiResponse(responseCode = "400", description = "Requisição inválida (dados ausentes ou mal formatados), validação falhou.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
-    @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar criar a categoria.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
+    @Post(consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
+    @Operation(summary = "Criar nova categoria", description = "Cria uma nova categoria com os dados fornecidos no corpo da requisição.")
+    @ApiResponse(responseCode = "201", description = "Categoria criada com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Categoria.class)))
+    @ApiResponse(responseCode = "400", description = "Requisição inválida (dados ausentes ou mal formatados), validação falhou.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
+    @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar criar a categoria.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
     public HttpResponse<?> criar(@Body @Valid Categoria categoria) {
         try {
-            Categoria nova = categoriaService.salvarCategoria(categoria);
+            Categoria nova = categoriaService.salvarCategoria(categoria); // Correto para criar
             return HttpResponse.created(nova);
+        } catch (IllegalArgumentException e) { // Adicione esta captura se o salvarCategoria puder lançar
+            return HttpResponse.badRequest(ApiResponseMessage.error(e.getMessage()));
         } catch (Exception e) {
             return HttpResponse.serverError(ApiResponseMessage.error("Erro ao criar categoria: " + e.getMessage()));
         }
@@ -102,29 +89,24 @@ public class CategoriaController {
     /**
      * PUT /api/categorias/{id}
      * Atualiza a categoria existente com o ID informado.
-     * Returns the updated Categoria on success (200 OK), or an ApiResponseMessage on error (404 Not Found or 500 Internal Server Error).
+     * Returns the updated Categoria on success (200 OK), or an ApiResponseMessage
+     * on error (404 Not Found or 500 Internal Server Error).
      */
     @Put("/{id}")
-    @Operation(summary = "Atualizar categoria existente",
-                description = "Atualiza os dados de uma categoria existente com base no ID.")
-    @ApiResponse(responseCode = "200", description = "Categoria atualizada com sucesso.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = Categoria.class)))
-    @ApiResponse(responseCode = "400", description = "Requisição inválida (dados ausentes ou mal formatados), validação falhou.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
-    @ApiResponse(responseCode = "404", description = "Categoria não encontrada para o ID especificado.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
-    @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar atualizar a categoria.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
+    @Operation(summary = "Atualizar categoria existente", description = "Atualiza os dados de uma categoria existente com base no ID.")
+    @ApiResponse(responseCode = "200", description = "Categoria atualizada com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Categoria.class)))
+    @ApiResponse(responseCode = "400", description = "Requisição inválida (dados ausentes ou mal formatados), validação falhou.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
+    @ApiResponse(responseCode = "404", description = "Categoria não encontrada para o ID especificado.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
+    @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar atualizar a categoria.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
     public HttpResponse<?> atualizar(@PathVariable Long id, @Body @Valid Categoria categoria) {
         try {
-            Categoria atualizada = categoriaService.atualizarCategoria(id, categoria);
-            return HttpResponse.ok(atualizada);
+            // AQUI ESTÁ A CORREÇÃO PRINCIPAL: CHAME O MÉTODO DE ATUALIZAÇÃO CORRETO
+            Categoria atualizada = categoriaService.atualizarCategoria(id, categoria.nome());
+            return HttpResponse.ok(atualizada); // Retorne 200 OK para atualização
         } catch (CategoriaNaoEncontradaException e) {
-            return HttpResponse.notFound(ApiResponseMessage.error("Categoria não encontrada para atualização."));
+            return HttpResponse.notFound(ApiResponseMessage.error("Categoria não encontrada: " + e.getMessage()));
+        } catch (IllegalArgumentException e) { // Captura exceção de nome duplicado
+            return HttpResponse.badRequest(ApiResponseMessage.error(e.getMessage()));
         } catch (Exception e) {
             return HttpResponse.serverError(ApiResponseMessage.error("Erro ao atualizar categoria: " + e.getMessage()));
         }
@@ -133,29 +115,19 @@ public class CategoriaController {
     /**
      * DELETE /api/categorias/{id}
      * Remove a categoria com o ID informado.
-     * Returns 204 No Content on success, or an ApiResponseMessage on error (404 Not Found or 500 Internal Server Error).
+     * Returns 204 No Content on success, or an ApiResponseMessage on error (404 Not
+     * Found or 500 Internal Server Error).
      */
     @Delete("/{id}")
-    @Operation(summary = "Deletar categoria",
-                description = "Remove a categoria com o ID especificado do sistema.")
+    @Operation(summary = "Deletar categoria", description = "Remove a categoria com o ID especificado do sistema.")
     @ApiResponse(responseCode = "204", description = "Categoria deletada com sucesso (Nenhum conteúdo para retornar).")
-    @ApiResponse(responseCode = "200", description = "Categoria deletada com sucesso (com mensagem no corpo, se aplicável).",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
-    @ApiResponse(responseCode = "404", description = "Categoria não encontrada para o ID especificado (já excluída ou nunca existiu).",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
-    @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar deletar a categoria.",
-                    content = @Content(mediaType = "application/json",
-                                        schema = @Schema(implementation = ApiResponseMessage.class)))
+    @ApiResponse(responseCode = "200", description = "Categoria deletada com sucesso (com mensagem no corpo, se aplicável).", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
+    @ApiResponse(responseCode = "404", description = "Categoria não encontrada para o ID especificado (já excluída ou nunca existiu).", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
+    @ApiResponse(responseCode = "500", description = "Erro interno do servidor ao tentar deletar a categoria.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseMessage.class)))
     public HttpResponse<?> deletar(@PathVariable Long id) {
         try {
             categoriaService.deletarCategoria(id);
             return HttpResponse.noContent(); // Standard for successful DELETE with no body
-
-            // If you wanted to return a 200 OK with a message instead:
-            // return HttpResponse.ok(ApiResponseMessage.success("Categoria excluída com sucesso!"));
-
         } catch (CategoriaNaoEncontradaException e) {
             return HttpResponse.notFound(ApiResponseMessage.error("Categoria não encontrada ou já excluída."));
         } catch (Exception e) {

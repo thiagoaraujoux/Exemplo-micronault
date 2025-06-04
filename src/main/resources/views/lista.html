@@ -14,6 +14,10 @@
         .modal-card-body .field {
             margin-bottom: 1rem;
         }
+        /* Adicione um estilo para o modal de categoria para garantir que esteja visível */
+        .modal-card {
+            max-width: 600px; /* Ajuste a largura máxima se necessário */
+        }
     </style>
 </head>
 
@@ -134,7 +138,7 @@
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title">Editar Lista</p>
-                <button class="delete" aria-label="close"></button>
+                <button class="delete" aria-label="close" id="closeEditListModalButton"></button>
             </header>
             <section class="modal-card-body">
                 <input type="hidden" id="editListId">
@@ -158,9 +162,7 @@
                         <div class="select is-fullwidth">
                             <select id="editCategoriaId">
                                 <option value="">Nenhuma Categoria</option>
-                                <option th:each="categoria : ${categorias}" th:value="${categoria.id}"
-                                    th:text="${categoria.nome}"></option>
-                            </select>
+                                </select>
                         </div>
                     </div>
                 </div>
@@ -172,6 +174,29 @@
         </div>
     </div>
 
+    <div class="modal" id="categoryModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" id="categoryModalTitle">Adicionar Categoria</p>
+                <button class="delete" aria-label="close" id="closeCategoryModalButton"></button>
+            </header>
+            <section class="modal-card-body">
+                <input type="hidden" id="categoryId"> <div class="field">
+                    <label class="label" for="categoryName">Nome da Categoria</label>
+                    <div class="control">
+                        <input class="input" type="text" id="categoryName" placeholder="Nome da Categoria" required>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" id="saveCategoryButton">Salvar Categoria</button>
+                <button class="button" id="cancelCategoryButton">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Dismiss Bulma notifications
@@ -182,69 +207,75 @@
                 });
             });
 
-            // Edit List Modal Logic
+            // --- Gerenciamento do Modal de Edição de Lista ---
             const editListModal = document.getElementById('editListModal');
             const editListIdInput = document.getElementById('editListId');
             const editTituloInput = document.getElementById('editTitulo');
             const editDescricaoInput = document.getElementById('editDescricao');
-            const editCategoriaIdSelect = document.getElementById('editCategoriaId');
+            const editCategoriaIdSelect = document.getElementById('editCategoriaId'); // Dropdown do modal de edição
             const saveEditButton = document.getElementById('saveEditButton');
             const cancelEditButton = document.getElementById('cancelEditButton');
+            const closeEditListModalButton = document.getElementById('closeEditListModalButton');
 
+            // Função para fechar o modal de edição de lista
+            const closeEditModal = () => {
+                editListModal.classList.remove('is-active');
+            };
+
+            // Event listeners para fechar o modal de edição de lista
+            closeEditListModalButton.addEventListener('click', closeEditModal);
+            cancelEditButton.addEventListener('click', closeEditModal);
+            document.querySelector('#editListModal .modal-background').addEventListener('click', closeEditModal);
+
+            // Adiciona evento de clique aos botões de 'Editar' das listas
             document.querySelectorAll('.edit-list-button').forEach(button => {
-                button.addEventListener('click', (event) => {
+                button.addEventListener('click', async (event) => {
                     event.preventDefault();
                     const listId = button.dataset.id;
                     const titulo = button.dataset.titulo;
                     const descricao = button.dataset.descricao;
-                    const categoriaId = button.dataset.categoriaId; // This will be "" if no category
+                    const categoriaId = button.dataset.categoriaId; // Pode ser vazio "" se não tiver categoria
 
+                    // Preenche os campos do modal de edição
                     editListIdInput.value = listId;
                     editTituloInput.value = titulo;
                     editDescricaoInput.value = descricao;
 
-                    // Select the correct category in the dropdown
-                    if (categoriaId) {
-                        editCategoriaIdSelect.value = categoriaId;
-                    } else {
-                        editCategoriaIdSelect.value = ''; // No category selected
-                    }
+                    // *** CORREÇÃO AQUI: Popula o dropdown de categorias dinamicamente ANTES de pré-selecionar ***
+                    await populateCategoriesDropdown(editCategoriaIdSelect, categoriaId);
 
+                    // Abre o modal
                     editListModal.classList.add('is-active');
                 });
             });
 
-            // Close modal functionality
-            const closeEditModal = () => {
-                editListModal.classList.remove('is-active');
-            };
-            document.querySelector('#editListModal .delete').addEventListener('click', closeEditModal);
-            cancelEditButton.addEventListener('click', closeEditModal);
-            document.querySelector('#editListModal .modal-background').addEventListener('click', closeEditModal);
-
-            // Save Edit Button Click (This sends JSON to the API controller)
+            // Lógica para Salvar Edições da Lista
             saveEditButton.addEventListener('click', () => {
                 const listId = editListIdInput.value;
-                const selectedCategoriaId = editCategoriaIdSelect.value; // Get the selected value
+                const selectedCategoriaId = editCategoriaIdSelect.value;
 
+                // Prepara os dados para enviar à API
                 const updatedData = {
                     titulo: editTituloInput.value,
                     descricao: editDescricaoInput.value,
-                    // Send null if no category is selected, otherwise parse to int
+                    // Se o Micronaut espera um ID, converta para número.
+                    // Se espera um objeto Categoria, você teria que montar { id: parseInt(selectedCategoriaId) }
                     categoriaId: selectedCategoriaId === '' ? null : parseInt(selectedCategoriaId)
                 };
 
-                fetch(`/api/listas/${listId}`, { // Assuming a separate API controller for PUT
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(updatedData)
-                })
+                fetch(`/api/listas/${listId}`, { // Endpoint da sua API REST para atualizar a lista
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(updatedData)
+                    })
                     .then(response => {
                         if (response.ok) {
+                            // Se a atualização for bem-sucedida, recarrega a página para refletir as mudanças
                             window.location.href = '/listas?sucesso=lista_atualizada';
                         } else {
+                            // Em caso de erro, tenta extrair a mensagem e exibi-la
                             response.text().then(text => {
                                 let errorMessage = 'Erro ao atualizar a lista.';
                                 try {
@@ -260,24 +291,24 @@
                         }
                     })
                     .catch(error => {
-                        console.error('Error updating list:', error);
+                        console.error('Erro ao atualizar a lista:', error);
                         window.location.href = '/listas?erro=Erro de rede ao atualizar a lista.';
                     });
             });
 
-            // Delete List Button Click (This sends JSON to the API controller)
+            // Lógica para Deletar Lista
             document.querySelectorAll('.delete-list-button').forEach(button => {
                 button.addEventListener('click', (event) => {
                     event.preventDefault();
                     const listId = button.dataset.id;
 
                     if (confirm('Tem certeza que deseja deletar esta lista?')) {
-                        fetch(`/api/listas/${listId}`, { // Assuming a separate API controller for DELETE
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        })
+                        fetch(`/api/listas/${listId}`, { // Endpoint da sua API REST para deletar a lista
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            })
                             .then(response => {
                                 if (response.ok || response.status === 204) { // 204 No Content for successful delete
                                     window.location.href = '/listas?sucesso=lista_deletada';
@@ -297,12 +328,136 @@
                                 }
                             })
                             .catch(error => {
-                                console.error('Error deleting list:', error);
+                                console.error('Erro ao deletar a lista:', error);
                                 window.location.href = '/listas?erro=Erro de rede ao deletar a lista.';
                             });
                     }
                 });
             });
+
+            // --- NOVO: Funções para o Modal de Categoria ---
+            const categoryModal = document.getElementById('categoryModal');
+            const categoryModalTitle = document.getElementById('categoryModalTitle');
+            const categoryIdInput = document.getElementById('categoryId');
+            const categoryNameInput = document.getElementById('categoryName');
+            const saveCategoryButton = document.getElementById('saveCategoryButton');
+            const cancelCategoryButton = document.getElementById('cancelCategoryButton');
+            const closeCategoryModalButton = document.getElementById('closeCategoryModalButton');
+
+            // Função para abrir o modal de categoria (para adicionar ou editar)
+            const openCategoryModal = (categoria = null) => {
+                categoryNameInput.value = ''; // Limpa o campo
+                if (categoria) {
+                    categoryModalTitle.textContent = 'Editar Categoria';
+                    categoryIdInput.value = categoria.id;
+                    categoryNameInput.value = categoria.nome;
+                } else {
+                    categoryModalTitle.textContent = 'Adicionar Categoria';
+                    categoryIdInput.value = ''; // Garante que não há ID para adicionar
+                }
+                categoryModal.classList.add('is-active');
+            };
+
+            // Função para fechar o modal de categoria
+            const closeCategoryModal = () => {
+                categoryModal.classList.remove('is-active');
+            };
+
+            // Event listeners para fechar o modal de categoria
+            closeCategoryModalButton.addEventListener('click', closeCategoryModal);
+            cancelCategoryButton.addEventListener('click', closeCategoryModal);
+            document.querySelector('#categoryModal .modal-background').addEventListener('click', closeCategoryModal);
+
+            // Adicione um botão "Adicionar Categoria" ou um link no navbar para abrir este modal
+            // Por enquanto, não há um botão direto na página "Minhas Listas" para isso.
+            // Se você quiser um, adicione no HTML: <button class="button is-link" id="addCategoryButton">Adicionar Categoria</button>
+            // E o event listener:
+            // document.getElementById('addCategoryButton')?.addEventListener('click', () => openCategoryModal());
+
+
+            // Lógica para Salvar/Atualizar Categoria
+            saveCategoryButton.addEventListener('click', () => {
+                const id = categoryIdInput.value;
+                const nome = categoryNameInput.value.trim();
+
+                if (!nome) {
+                    alert('O nome da categoria não pode ser vazio.');
+                    return;
+                }
+
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `/api/categorias/${id}` : `/api/categorias`; // Endpoint da sua API REST para categorias
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id || undefined, nome: nome })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert(`Categoria ${id ? 'atualizada' : 'criada'} com sucesso!`);
+                        closeCategoryModal();
+                        // Redireciona ou atualiza a página para que o dropdown de categorias seja recarregado
+                        window.location.href = '/listas'; // Recarrega a página para ver as categorias atualizadas
+                    } else {
+                        response.text().then(text => {
+                            let errorMessage = `Erro ao ${id ? 'atualizar' : 'criar'} categoria.`;
+                            try {
+                                const errorJson = JSON.parse(text);
+                                errorMessage = errorJson.message || errorJson.detail || errorMessage;
+                            } catch (e) {
+                                errorMessage = text || errorMessage;
+                            }
+                            alert('Erro: ' + errorMessage);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error(`Erro ao ${id ? 'atualizar' : 'criar'} categoria:`, error);
+                    alert('Erro de rede ao processar categoria.');
+                });
+            });
+
+
+            // --- Função Reutilizável para Popular Dropdowns de Categoria ---
+            // Esta função será usada tanto para o formulário de criação quanto para o de edição
+            async function populateCategoriesDropdown(selectElement, selectedCategoriaId = '') {
+                try {
+                    const response = await fetch('/api/categorias'); // Endpoint da sua API REST para listar categorias
+                    if (!response.ok) {
+                        throw new Error(`Erro HTTP: ${response.status}`);
+                    }
+                    const categories = await response.json();
+
+                    // Limpa as opções atuais (exceto a padrão "Nenhuma Categoria")
+                    selectElement.innerHTML = '<option value="">Nenhuma Categoria</option>';
+
+                    // Adiciona as categorias recebidas da API
+                    categories.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.nome;
+                        selectElement.appendChild(option);
+                    });
+
+                    // Pré-seleciona a categoria, se houver uma para ser selecionada
+                    if (selectedCategoriaId) {
+                        selectElement.value = selectedCategoriaId;
+                    }
+                } catch (error) {
+                    console.error('Erro ao popular dropdown de categorias:', error);
+                    // Opcional: Adicionar uma mensagem de erro visual para o usuário
+                    // alert('Não foi possível carregar as categorias. Tente novamente.');
+                }
+            }
+
+            // Popula o dropdown de categoria no formulário de criação de lista na carga da página
+            // O Thymeleaf já faz isso, mas esta função pode ser útil se você precisar recarregar
+            // por alguma razão, ou se o Thymeleaf não estiver funcionando como esperado.
+            // Por enquanto, o Thymeleaf já está preenchendo isso na carga inicial.
+            // Se você quiser que o JS sempre popule, pode descomentar:
+            // populateCategoriesDropdown(document.getElementById('categoriaId'));
+
         });
     </script>
 </body>

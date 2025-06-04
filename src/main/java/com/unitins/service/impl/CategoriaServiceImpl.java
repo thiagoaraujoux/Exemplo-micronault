@@ -62,23 +62,35 @@ public class CategoriaServiceImpl implements CategoriaService { // Implementa a 
 
     @Override
     @Transactional // Marca o método como transacional (escrita)
-    public Categoria atualizarCategoria(Long id, Categoria categoriaAtualizada) {
+    public Categoria atualizarCategoria(Long id, String novoNome) {
+        // 1. Primeiro, verifique se a categoria que se deseja atualizar existe
         Optional<Categoria> categoriaOptional = categoriaRepository.findById(id);
-        if (categoriaOptional.isPresent()) {
-            Categoria categoriaExistente = categoriaOptional.get();
-            // Records são imutáveis, então criamos um novo record com os dados atualizados.
-            // Mantemos o ID existente e atualizamos o nome com o valor do record de entrada.
-            Categoria categoriaParaSalvar = new Categoria(
-                categoriaExistente.id(), // Mantém o ID existente (usando o accessor do record)
-                categoriaAtualizada.nome() // Usa o nome do record de entrada (usando o accessor do record)
-            );
-
-            // O método save() do CrudRepository para records com @Id e @GeneratedValue
-            // geralmente lida com a atualização se o ID já existir.
-            return categoriaRepository.save(categoriaParaSalvar);
-        } else {
-            // Lança exceção se a categoria não for encontrada
-            throw new CategoriaNaoEncontradaException("Categoria com ID " + id + " não encontrada");
+        if (categoriaOptional.isEmpty()) {
+            throw new CategoriaNaoEncontradaException("Categoria com ID " + id + " não encontrada.");
         }
+
+        // 2. Verifique se o 'novoNome' já existe para OUTRA categoria
+        Optional<Categoria> existingCategoryWithName = categoriaRepository.findByNome(novoNome);
+        if (existingCategoryWithName.isPresent() && !existingCategoryWithName.get().id().equals(id)) {
+            // Se encontrou uma categoria com o mesmo nome E o ID é diferente do que estamos atualizando,
+            // significa que o nome já está em uso por outra categoria.
+            throw new IllegalArgumentException("Já existe uma categoria com o nome '" + novoNome + "'.");
+        }
+
+        // 3. Use o método 'update' explícito do repositório para atualizar o nome
+        int updatedRows = categoriaRepository.update(id, novoNome);
+
+        // Verifica se a atualização realmente afetou alguma linha no banco
+        if (updatedRows == 0) {
+            // Isso pode acontecer se a categoria foi deletada logo após a busca (cenário de concorrência)
+            // ou se o nome não mudou (o que normalmente não é um erro, mas pode indicar falha na lógica)
+            // Lançamos uma exceção para tratar isso como uma falha na operação.
+            throw new RuntimeException("Falha ao atualizar categoria com ID " + id + ". Nenhuma linha afetada.");
+        }
+
+        // 4. Retorne a categoria atualizada buscando-a novamente para ter o estado mais recente
+        return categoriaRepository.findById(id)
+                .orElseThrow(() -> new CategoriaNaoEncontradaException(
+                        "Erro ao recuperar categoria atualizada com ID: " + id));
     }
 }

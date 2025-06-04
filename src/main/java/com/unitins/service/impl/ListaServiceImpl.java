@@ -2,7 +2,6 @@ package com.unitins.service.impl;
 
 import com.unitins.model.Lista;
 import com.unitins.dto.ListaUpdateDTO;
-import com.unitins.model.Categoria;
 import com.unitins.repository.ListaRepository;
 import com.unitins.repository.CategoriaRepository;
 import io.micronaut.transaction.annotation.Transactional;
@@ -46,24 +45,22 @@ public class ListaServiceImpl implements ListaService {
     @Override
     @Transactional(readOnly = true)
     public Iterable<Lista> listarPorUsuario(Long usuarioId) {
-        // Simplificado: Usando findByUsuarioId diretamente do ListaRepository.
-        // Isso remove a necessidade de injetar UsuarioRepository neste serviço para
-        // esta operação.
         return listaRepository.findByUsuarioId(usuarioId);
     }
 
     @Override
     @Transactional
     public Lista salvarLista(Lista lista) {
-        // This method already uses save, which is correct for both creation and update.
+        // Este método é mais genérico e pode ser usado para ambos: criação e atualização.
+        // Se a 'lista' passada tiver um ID existente, o Micronaut Data (via JPA)
+        // tentará fazer um UPDATE. Se não tiver ID (ou for 0), fará um INSERT.
         return listaRepository.save(lista);
     }
 
     @Override
     @Transactional
     public void deletarLista(Long id) {
-        System.out.println("Tentando deletar lista com ID: " + id); // Log do ID
-
+        System.out.println("Tentando deletar lista com ID: " + id);
         Optional<Lista> listaOptional = listaRepository.findById(id);
 
         if (listaOptional.isPresent()) {
@@ -76,7 +73,6 @@ public class ListaServiceImpl implements ListaService {
                 System.out.println(
                         "Proprietário da Lista: NULL (Isso não deveria acontecer se o save original foi feito com usuário!)");
             }
-
             listaRepository.delete(lista);
             System.out.println("Lista deletada com sucesso! ID: " + id);
         } else {
@@ -88,21 +84,20 @@ public class ListaServiceImpl implements ListaService {
     @Override
     @Transactional
     public Lista atualizarLista(Long id, ListaUpdateDTO listaUpdateDTO) {
-        System.out.println("Attempting to update list with ID: " + id); // Log the ID being processed
+        System.out.println("Attempting to update list with ID: " + id);
         Optional<Lista> listaOptional = listaRepository.findById(id);
+
         if (listaOptional.isEmpty()) {
-            System.out.println("List with ID " + id + " not found in repository."); // Log if not found
+            System.out.println("List with ID " + id + " not found in repository.");
             throw new ListaNaoEncontradaException("Lista com ID " + id + " não encontrada para atualização.");
         }
-        Lista listaExistente = listaOptional.get();
-        System.out.println("List found with ID: " + listaExistente.id() + ", Title: " + listaExistente.titulo()); // Log if found
 
-        // Get current values from the existing record
+        Lista listaExistente = listaOptional.get();
+
         String novoTitulo = listaExistente.titulo();
         String novaDescricao = listaExistente.descricao();
-        Categoria novaCategoria = listaExistente.categoria();
+        Long novaCategoriaId = listaExistente.categoria() != null ? listaExistente.categoria().id() : null; // Pega o ID da categoria existente
 
-        // Update values if they are provided in the DTO
         if (listaUpdateDTO.getTitulo() != null) {
             novoTitulo = listaUpdateDTO.getTitulo();
         }
@@ -110,30 +105,28 @@ public class ListaServiceImpl implements ListaService {
             novaDescricao = listaUpdateDTO.getDescricao();
         }
 
-        // Handle category update
         if (listaUpdateDTO.getCategoriaId() != null) {
-            // A category ID was provided, try to find it
-            novaCategoria = categoriaRepository.findById(listaUpdateDTO.getCategoriaId())
+            // Verifica se a categoria existe antes de tentar associar
+            categoriaRepository.findById(listaUpdateDTO.getCategoriaId())
                     .orElseThrow(() -> new CategoriaNaoEncontradaException(
                             "Categoria com ID " + listaUpdateDTO.getCategoriaId() + " não encontrada."));
+            novaCategoriaId = listaUpdateDTO.getCategoriaId();
         } else {
-            // No category ID provided (or null), set category to null
-            novaCategoria = null;
+            // Se o ID da categoria for explicitamente NULL no DTO, defina o ID da categoria como NULL
+            novaCategoriaId = null;
         }
 
-        // Create a NEW Lista record with updated values.
-        // For immutable fields like 'id', 'dataCriacao', 'usuario', use the values from
-        // 'listaExistente'.
-        Lista listaParaSalvar = new Lista(
-                listaExistente.id(), // Keep the original ID
-                novoTitulo, // Use the potentially updated title
-                novaDescricao, // Use the potentially updated description
-                listaExistente.dataCriacao(), // Keep the original creation date
-                listaExistente.usuario(), // Keep the original user (owner)
-                novaCategoria // Use the potentially updated category
-        );
+        // Use o método de atualização explícito
+        int updatedCount = listaRepository.update(id, novoTitulo, novaDescricao, novaCategoriaId);
 
-        // Use 'save' instead of 'update'. Micronaut Data's 'save' method handles both inserts and updates.
-        return listaRepository.save(listaParaSalvar);
+        if (updatedCount == 0) {
+            // Isso deve acontecer se o registro não foi encontrado para atualização,
+            // embora já tenhamos feito o findById antes. É um fallback.
+            throw new ListaNaoEncontradaException("Lista com ID " + id + " não encontrada ou não pôde ser atualizada.");
+        }
+
+        // Após a atualização bem-sucedida, busque a lista atualizada do banco para retornar o Record completo
+        return listaRepository.findById(id)
+                .orElseThrow(() -> new ListaNaoEncontradaException("Erro ao recuperar lista atualizada com ID: " + id));
     }
 }
