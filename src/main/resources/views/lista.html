@@ -14,39 +14,61 @@
         .modal-card-body .field {
             margin-bottom: 1rem;
         }
+
         /* Adicione um estilo para o modal de categoria para garantir que esteja visível */
         .modal-card {
-            max-width: 600px; /* Ajuste a largura máxima se necessário */
+            max-width: 600px;
+            /* Ajuste a largura máxima se necessário */
         }
+
         /* Estilo para alinhar título e botão de adicionar categoria */
         .header-with-button {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem; /* Espaçamento após o cabeçalho */
+            margin-bottom: 1.5rem;
+            /* Espaçamento após o cabeçalho */
         }
 
         /* Estilo para agrupar label, select e botão '+' */
         .field-with-add-button {
             display: flex;
-            align-items: flex-end; /* Alinha os itens na base */
-            gap: 0.5rem; /* Espaçamento entre os elementos */
+            align-items: flex-end;
+            /* Alinha os itens na base */
+            gap: 0.5rem;
+            /* Espaçamento entre os elementos */
         }
 
         .field-with-add-button .control.is-expanded {
-            flex-grow: 1; /* Faz o select ocupar o espaço disponível */
+            flex-grow: 1;
+            /* Faz o select ocupar o espaço disponível */
         }
 
         /* Ajuste do botão '+' para parecer um ícone */
         .button.is-small-plus {
-            width: 2.25em; /* Largura para um botão quadrado */
-            height: 2.25em; /* Altura para um botão quadrado */
-            padding: 0; /* Remove padding interno */
+            width: 2.25em;
+            /* Largura para um botão quadrado */
+            height: 2.25em;
+            /* Altura para um botão quadrado */
+            padding: 0;
+            /* Remove padding interno */
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 1.25rem; /* Aumenta o tamanho do "+" */
-            line-height: 1; /* Ajusta a altura da linha */
+            font-size: 1.25rem;
+            /* Aumenta o tamanho do "+" */
+            line-height: 1;
+            /* Ajusta a altura da linha */
+        }
+
+        /* Estilos para a lista de categorias no modal */
+        .category-list .panel-block {
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-list .panel-block .buttons {
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -81,7 +103,7 @@
         <div class="container">
             <div class="header-with-button">
                 <h1 class="title is-2">Minhas Listas de Tarefas</h1>
-                
+
             </div>
 
             <div id="message-area">
@@ -203,7 +225,7 @@
                             <div class="select is-fullwidth">
                                 <select id="editCategoriaId">
                                     <option value="">Nenhuma Categoria</option>
-                                    </select>
+                                </select>
                             </div>
                         </div>
                         <div class="control">
@@ -229,10 +251,18 @@
                 <button class="delete" aria-label="close" id="closeCategoryModalButton"></button>
             </header>
             <section class="modal-card-body">
-                <input type="hidden" id="categoryId"> <div class="field">
+                <input type="hidden" id="categoryId">
+                <div class="field">
                     <label class="label" for="categoryName">Nome da Categoria</label>
                     <div class="control">
                         <input class="input" type="text" id="categoryName" placeholder="Nome da Categoria" required>
+                    </div>
+                </div>
+                <hr>
+                <h3 class="title is-5">Categorias Existentes</h3>
+                <div class="panel is-flex is-flex-direction-column category-list" id="existingCategoriesList">
+                    <div class="notification is-info has-text-centered" id="noCategoriesMessage" style="display: none;">
+                        Nenhuma categoria ainda. Adicione uma!
                     </div>
                 </div>
             </section>
@@ -392,9 +422,11 @@
             const cancelCategoryButton = document.getElementById('cancelCategoryButton');
             const closeCategoryModalButton = document.getElementById('closeCategoryModalButton');
             const addCategoryButtonCreate = document.getElementById('addCategoryButtonCreate'); // Botão no formulário de criação
+            const existingCategoriesList = document.getElementById('existingCategoriesList'); // Nova div para a lista de categorias
+            const noCategoriesMessage = document.getElementById('noCategoriesMessage'); // Mensagem de 'nenhuma categoria'
 
             // Função para abrir o modal de categoria (para adicionar ou editar)
-            const openCategoryModal = (categoria = null) => {
+            const openCategoryModal = async (categoria = null) => {
                 categoryNameInput.value = ''; // Limpa o campo
                 if (categoria) {
                     categoryModalTitle.textContent = 'Editar Categoria';
@@ -404,6 +436,7 @@
                     categoryModalTitle.textContent = 'Adicionar Categoria';
                     categoryIdInput.value = ''; // Garante que não há ID para adicionar
                 }
+                await loadExistingCategories(); // Carrega as categorias existentes ao abrir o modal
                 categoryModal.classList.add('is-active');
             };
 
@@ -417,7 +450,6 @@
             cancelCategoryButton.addEventListener('click', closeCategoryModal);
             document.querySelector('#categoryModal .modal-background').addEventListener('click', closeCategoryModal);
 
-            
 
             // *** NOVO: Event listener para o botão '+' no formulário de criação ***
             addCategoryButtonCreate.addEventListener('click', () => openCategoryModal());
@@ -427,7 +459,7 @@
 
 
             // Lógica para Salvar/Atualizar Categoria
-            saveCategoryButton.addEventListener('click', () => {
+            saveCategoryButton.addEventListener('click', async () => {
                 const id = categoryIdInput.value;
                 const nome = categoryNameInput.value.trim();
 
@@ -439,35 +471,133 @@
                 const method = id ? 'PUT' : 'POST';
                 const url = id ? `/api/categorias/${id}` : `/api/categorias`; // Endpoint da sua API REST para categorias
 
-                fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id || undefined, nome: nome })
-                })
-                .then(response => {
+                try {
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: id || undefined, nome: nome })
+                    });
+
                     if (response.ok) {
                         alert(`Categoria ${id ? 'atualizada' : 'criada'} com sucesso!`);
-                        closeCategoryModal();
-                        // Recarrega a página para que o dropdown de categorias seja recarregado
-                        window.location.href = '/listas'; 
+                        categoryNameInput.value = ''; // Limpa o campo após salvar
+                        categoryIdInput.value = ''; // Limpa o ID para permitir nova adição
+                        await loadExistingCategories(); // Recarrega a lista de categorias no modal
+                        await populateCategoriesDropdown(document.getElementById('categoriaId')); // Atualiza dropdown principal
+                        await populateCategoriesDropdown(document.getElementById('editCategoriaId')); // Atualiza dropdown de edição
                     } else {
-                        response.text().then(text => {
-                            let errorMessage = `Erro ao ${id ? 'atualizar' : 'criar'} categoria.`;
-                            try {
-                                const errorJson = JSON.parse(text);
-                                errorMessage = errorJson.message || errorJson.detail || errorMessage;
-                            } catch (e) {
-                                errorMessage = text || errorMessage;
-                            }
-                            alert('Erro: ' + errorMessage);
-                        });
+                        const text = await response.text();
+                        let errorMessage = `Erro ao ${id ? 'atualizar' : 'criar'} categoria.`;
+                        try {
+                            const errorJson = JSON.parse(text);
+                            errorMessage = errorJson.message || errorJson.detail || errorMessage;
+                        } catch (e) {
+                            errorMessage = text || errorMessage;
+                        }
+                        alert('Erro: ' + errorMessage);
                     }
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error(`Erro ao ${id ? 'atualizar' : 'criar'} categoria:`, error);
                     alert('Erro de rede ao processar categoria.');
-                });
+                }
             });
+
+            // NOVO: Função para carregar e exibir categorias existentes no modal
+            async function loadExistingCategories() {
+                existingCategoriesList.innerHTML = ''; // Limpa a lista antes de carregar
+                noCategoriesMessage.style.display = 'none'; // Esconde a mensagem inicialmente
+
+                try {
+                    const response = await fetch('/api/categorias');
+                    if (!response.ok) {
+                        throw new Error(`Erro HTTP: ${response.status}`);
+                    }
+                    const categories = await response.json();
+
+                    if (categories.length === 0) {
+                        noCategoriesMessage.style.display = 'block'; // Exibe a mensagem se não houver categorias
+                    } else {
+                        categories.forEach(category => {
+                            const panelBlock = document.createElement('div');
+                            panelBlock.classList.add('panel-block', 'is-flex', 'is-align-items-center', 'is-justify-content-space-between');
+                            panelBlock.dataset.id = category.id;
+
+                            const categoryNameSpan = document.createElement('span');
+                            categoryNameSpan.textContent = category.nome;
+                            panelBlock.appendChild(categoryNameSpan);
+
+                            const buttonsDiv = document.createElement('div');
+                            buttonsDiv.classList.add('buttons', 'is-small');
+
+                            const editButton = document.createElement('button');
+                            editButton.classList.add('button', 'is-info', 'is-outlined', 'is-small', 'mr-2', 'edit-category-button');
+                            editButton.textContent = 'Editar';
+                            editButton.dataset.id = category.id;
+                            editButton.dataset.nome = category.nome;
+                            buttonsDiv.appendChild(editButton);
+
+                            const deleteButton = document.createElement('button');
+                            deleteButton.classList.add('button', 'is-danger', 'is-outlined', 'is-small', 'delete-category-button');
+                            deleteButton.textContent = 'Excluir';
+                            deleteButton.dataset.id = category.id;
+                            buttonsDiv.appendChild(deleteButton);
+
+                            panelBlock.appendChild(buttonsDiv);
+                            existingCategoriesList.appendChild(panelBlock);
+                        });
+
+                        // Adiciona listeners para os botões de editar e excluir recém-criados
+                        document.querySelectorAll('.edit-category-button').forEach(button => {
+                            button.addEventListener('click', (event) => {
+                                const id = event.target.dataset.id;
+                                const nome = event.target.dataset.nome;
+                                openCategoryModal({ id: id, nome: nome }); // Abre o modal em modo de edição
+                            });
+                        });
+
+                        document.querySelectorAll('.delete-category-button').forEach(button => {
+                            button.addEventListener('click', async (event) => {
+                                const id = event.target.dataset.id;
+                                if (confirm('Tem certeza que deseja excluir esta categoria?')) {
+                                    try {
+                                        const response = await fetch(`/api/categorias/${id}`, {
+                                            method: 'DELETE'
+                                        });
+
+                                        if (response.ok || response.status === 204) {
+                                            alert('Categoria excluída com sucesso!');
+                                            await loadExistingCategories(); // Recarrega a lista
+                                            await populateCategoriesDropdown(document.getElementById('categoriaId')); // Atualiza dropdown principal
+                                            await populateCategoriesDropdown(document.getElementById('editCategoriaId')); // Atualiza dropdown de edição
+                                        } else {
+                                            const text = await response.text();
+                                            let errorMessage = 'Erro ao excluir categoria.';
+                                            try {
+                                                const errorJson = JSON.parse(text);
+                                                errorMessage = errorJson.message || errorJson.detail || errorMessage;
+                                            } catch (e) {
+                                                errorMessage = text || errorMessage;
+                                            }
+                                            alert('Erro: ' + errorMessage);
+                                        }
+                                    } catch (error) {
+                                        console.error('Erro ao excluir categoria:', error);
+                                        alert('Erro de rede ao excluir categoria.');
+                                    }
+                                }
+                            });
+                        });
+                    }
+
+                } catch (error) {
+                    console.error('Erro ao carregar categorias existentes:', error);
+                    const errorElement = document.createElement('div');
+                    errorElement.classList.add('notification', 'is-danger');
+                    errorElement.textContent = 'Erro ao carregar categorias. Tente novamente.';
+                    existingCategoriesList.appendChild(errorElement);
+                    noCategoriesMessage.style.display = 'none'; // Esconde a mensagem de "nenhuma categoria" em caso de erro.
+                }
+            }
 
 
             // --- Função Reutilizável para Popular Dropdowns de Categoria ---

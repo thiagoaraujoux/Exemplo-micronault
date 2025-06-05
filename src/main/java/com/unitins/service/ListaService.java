@@ -19,5 +19,5 @@ public interface ListaService {
 
     void deletarLista(Long id);
 
-    Lista atualizarLista(Long id, ListaUpdateDTO listaUpdateDTO);;
+    Lista atualizarLista(Long id, ListaUpdateDTO listaUpdateDTO);
 }
